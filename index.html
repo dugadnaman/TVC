@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
   <title>Rocket flight simulator | Group A3</title>
-  <link rel="stylesheet" href="simulator.css?v=layout-20261126">
+  <link rel="stylesheet" href="simulator.css?v=balanced-columns-20261126">
   <script type="module" src="simulator-app.js"></script>
 </head>
 <body>
@@ -84,6 +84,25 @@
       <p id="diagnostic-warning" class="small" role="status"></p>
       <details class="technical-details"><summary>Read diagnostic limits</summary><p class="small">Scene values, diagnostics, scores and landing or capture decisions use actual simulated state, not controller estimates. Stopping distance uses descent speed, available vertical thrust and actuator response. It is an estimate, not a landing guarantee.</p></details>
     </section>
+    <section class="box chart-box">
+      <h2>Attitude tracking</h2>
+      <div class="chart-series">
+        <div>
+          <h3>Pitch, °</h3>
+          <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
+        </div>
+        <div>
+          <h3>Roll, °</h3>
+          <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
+        </div>
+        <div>
+          <h3>Yaw, °</h3>
+          <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
+        </div>
+      </div>
+      <div class="legend"><span><i></i>Truth</span><span><i class="reference"></i>Reference</span><span><i class="estimate"></i>Sensor estimate</span></div>
+      <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
+    </section>
     </div>
 
 
@@ -109,8 +128,6 @@
     </section>
 
 
-    </div>
-    </div>
 
     <section class="box actuator-box">
       <h2>Actuator limits and response</h2>
@@ -123,25 +140,6 @@
       <p class="small">This actuator model does not use measured servo or motor data. Milliseconds convert to simulation seconds. Changes restart the flight and clear best scores, tuning traces and batch results.</p>
     </section>
 
-    <section class="box chart-box">
-      <h2>Attitude tracking</h2>
-      <div class="chart-series">
-        <div>
-          <h3>Pitch, °</h3>
-          <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
-        </div>
-        <div>
-          <h3>Roll, °</h3>
-          <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
-        </div>
-        <div>
-          <h3>Yaw, °</h3>
-          <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
-        </div>
-      </div>
-      <div class="legend"><span><i></i>Truth</span><span><i class="reference"></i>Reference</span><span><i class="estimate"></i>Sensor estimate</span></div>
-      <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
-    </section>
 
     <details class="box batch-box">
       <summary>Run repeatable scenario validation</summary>
@@ -206,6 +204,8 @@
         </dl>
         <p class="small">Hardware reference only. This simulator is not connected to an MCU or sensors; radio, storage, servo models and pin assignments are not yet specified.</p>
       </details>
+    </div>
+    </div>
 
   </aside>
 </main>
