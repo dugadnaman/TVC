@@ -1,4 +1,4 @@
-import { DEFAULTS, SENSOR_MODEL, RAD, attitude, clearance, diagnostics } from './simulator-physics.js?v=scene-20261126';
+import { DEFAULTS, SENSOR_MODEL, RAD, attitude, clearance, diagnostics } from './simulator-physics.js?v=flip-20261126';
 
 // Each call captures values, not references to the live simulation. Observations,
 // estimates, selected controller inputs and rigid-body truth are distinct.

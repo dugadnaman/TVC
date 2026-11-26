@@ -153,14 +153,22 @@ function controller(s, c, dt) {
   const f = s.feedback = feedbackSnapshot(s), height = f.clearance, v = s.vehicle;
   const h = Math.max(0, height - (s.mode === 'catch' ? P.catchHeight : 0));
   const landing = s.mode === 'landing' || s.mode === 'catch';
+  const bodyAxis = rotate(f.q, [0, 0, 1]);
   if (s.phase === 'coast' && height <= c.ignition) {
-    s.phase = 'burn'; s.integral.fill(0); s.ignitionTime = s.t;
+    s.phase = bodyAxis[2] < Math.cos(20 * RAD) ? 'flip' : 'burn';
+    s.integral.fill(0); s.ignitionTime = s.t;
+  }
+  // Finish the powered rotation before asking the thrust axis to chase the pad.
+  // Both attitude and settling rate come from the selected feedback source.
+  if (s.phase === 'flip' && bodyAxis[2] >= Math.cos(10 * RAD)
+      && Math.hypot(f.rates[0], f.rates[1]) <= 10 * RAD) {
+    s.phase = 'burn'; s.integral.fill(0);
   }
   const tiltLimit = landing ? (h > 25 ? 0.3 : 0.06 + 0.24 * h / 25) : 0.3;
   const ax = clamp(-0.10 * f.x - 0.55 * f.vx, -3, 3);
   const ay = clamp(-0.10 * f.y - 0.55 * f.vy, -3, 3);
   const lateral = Math.hypot(ax, ay);
-  const scale = lateral > 0 ? Math.min(1, Math.tan(tiltLimit) * P.gravity / lateral) : 1;
+  const scale = s.phase === 'flip' ? 0 : lateral > 0 ? Math.min(1, Math.tan(tiltLimit) * P.gravity / lateral) : 1;
   const desired = [ax * scale, ay * scale, P.gravity];
   const norm = Math.hypot(...desired);
   for (let i = 0; i < 3; i++) desired[i] /= norm;

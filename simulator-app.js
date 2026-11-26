@@ -1,5 +1,5 @@
-import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=horizontal-20261126';
-import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
+import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=flip-20261126';
+import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=flip-20261126';
 import { drawSeries, drawSearch } from './simulator-renderer.js?v=paired-views-20261126';
 import { FlightRenderer } from './simulator-webgl.js?v=paired-views-20261126';
 
@@ -44,8 +44,8 @@ function updateMode() {
   $('fuel-readout').hidden = mono;
   $('offset').closest('.slider-row').hidden = !landing;
   $('mode-description').textContent = landing
-    ? catching ? 'Start tilted at 1 km. Brake and align with the tower arms at 50 m clearance.'
-      : 'Start nearly horizontal at 1 km with 85° pitch. Tune pitch and roll PID gains to land on the pad.'
+    ? catching ? 'Coast horizontally, flip upright at ignition, then brake for the tower arms at 50 m clearance.'
+      : 'Coast at 85° pitch, flip upright at ignition, then brake and align with the landing pad.'
     : mono ? 'Climb from 2 m to the hover target. Control pitch and roll as propeller torque spins the body.'
       : 'Climb from 2 m to the target altitude. Hold position through pitch and roll disturbances.';
   $('mode-warning').textContent = mono
@@ -317,7 +317,7 @@ function render() {
   $('yaw').textContent = format(a.yaw / RAD, 1); $('yaw-rate').textContent = format(state.rates[2] / RAD, 1);
   $('mass').textContent = format(mass, 1); $('thrust').textContent = format(state.thrust);
   $('fuel').textContent = format(state.fuel, 1); $('clock').textContent = `T+${format(state.t, 1).padStart(4, '0')} s`;
-  $('phase').textContent = search ? 'Auto-tuning' : batch ? 'Batch running; flight paused' : state.phase.charAt(0).toUpperCase() + state.phase.slice(1).toLowerCase();
+  $('phase').textContent = search ? 'Auto-tuning' : batch ? 'Batch running; flight paused' : state.phase === 'flip' ? 'Flip upright' : state.phase.charAt(0).toUpperCase() + state.phase.slice(1).toLowerCase();
   $('path-status').textContent = `${$('scene-mode').textContent} · ${$('clock').textContent} · ${$('phase').textContent}`;
   $('gimbal').textContent = `gimbal ${format(state.gimbal[0] / RAD, 1)}° / ${format(state.gimbal[1] / RAD, 1)}°`;
   $('throttle').textContent = `throttle ${format(state.thrust / state.vehicle.maxThrust * 100)}%`;
