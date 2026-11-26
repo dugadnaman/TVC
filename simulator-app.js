@@ -43,24 +43,24 @@ function updateMode() {
   $('fuel-readout').hidden = mono;
   $('offset').closest('.slider-row').hidden = !landing;
   $('mode-description').textContent = landing
-    ? catching ? 'Guide the rocket into the tower’s catch arms at 50 m clearance. Brake, align in both horizontal axes, and arrive upright.'
-      : 'One kilometre up. One pad to reach. Tune shared pitch and roll PID gains to guide a gimballed rocket onto the ground.'
-    : mono ? 'A single tilting propeller. Climb from 2 m to the hover target and stabilize pitch and roll while reaction torque spins the body.'
-      : 'Straight-up TVC stabilization. Starting 2 m airborne, climb to the target altitude and hold position through pitch and roll disturbances.';
+    ? catching ? 'Brake and align the rocket with the tower arms at 50 m clearance.'
+      : 'Land from 1 km clearance. Adjust the pitch and roll PID gains to control the rocket.'
+    : mono ? 'Climb from 2 m to the hover target. Control pitch and roll as propeller torque spins the body.'
+      : 'Climb from 2 m to the target altitude. Hold position through pitch and roll disturbances.';
   $('mode-warning').textContent = mono
-    ? 'No yaw actuator: propeller reaction torque is real in this model. Hover scoring checks tilt and position, not heading. Illustrative hardware; no battery or blade gyrodynamics.'
-    : catching ? 'Illustrative catch envelope only: arm loads, tower collisions and post-capture dynamics are not simulated.'
-    : 'Illustrative 6-DOF model, not measured hardware or flight-qualified control software. Two-axis TVC does not independently control yaw.';
-  $('scene-mode').textContent = `A3 / ${catching ? 'TOWER CATCH' : landing ? '3D ROCKET LANDING' : mono ? 'TILT-PROP MONOCOPTER' : 'STRAIGHT-UP TVC'}`;
-  $('scene-range').textContent = landing ? '6 DOF · 1 KM INITIAL CLEARANCE' : '6 DOF · 30 SECOND HOVER TRIAL';
+    ? 'Yaw is uncontrolled. Hover scoring checks tilt and position, not heading. Battery and blade gyrodynamics are not simulated.'
+    : catching ? 'Arm loads, tower collisions and motion after capture are not simulated.'
+    : 'Two-axis thrust vector control does not independently control yaw.';
+  $('scene-mode').textContent = `A3 / ${catching ? 'Tower catch' : landing ? 'Rocket landing' : mono ? 'Monocopter' : 'Vertical flight'}`;
+  $('scene-range').textContent = landing ? '6 DOF · 1 km initial clearance' : '6 DOF · 30 s hover trial';
 }
 function applyGains(values) {
   gainKeys.forEach((key, i) => { config[key] = values[i]; $(key).value = values[i]; }); updateOutputs();
 }
 function updateFeedbackStatus() {
   $('feedback-status').textContent = state.controllerFeedback === 'sensors'
-    ? `Controller feedback: SENSORS · estimated attitude, barometric height/speed, ${state.estimate.navigationSource === 'gnss-aided-imu' ? 'simulated GNSS-aided XY' : 'IMU-only XY dead reckoning · drifts'} and preflight-calibrated gyro rates.`
-    : 'Controller feedback: TRUTH · ideal rigid-body navigation and angular rates; explicit comparison baseline, not sensor-driven control.';
+    ? `Sensor feedback uses estimated attitude, barometric height and speed, ${state.estimate.navigationSource === 'gnss-aided-imu' ? 'simulated GNSS-aided horizontal navigation' : 'IMU-only horizontal navigation with drift'}, and preflight-calibrated gyro rates.`
+    : 'Truth feedback uses ideal position, velocity, attitude and angular rates. Sensors do not control this flight.';
 }
 function reset({ keepTrails = false, auto = false, play = true } = {}) {
   state = newState(config); history = []; ghosts = []; telemetry = []; flightEvents = [];
@@ -81,19 +81,19 @@ function clearBests() {
 }
 function clearBatch() {
   batchResults = []; $('batch-results').replaceChildren(); $('batch-progress').value = 0;
-  $('batch-status').textContent = `Ready: predefined wind, mass and starting-attitude perturbations using ${config.controllerFeedback} feedback, ${config.gnssEnabled ? 'simulated GNSS aiding' : 'IMU-only navigation'}, current gains and actuators. Not a Monte Carlo reliability estimate.`;
+  $('batch-status').textContent = `Ready with current gains and actuators, ${config.controllerFeedback} feedback and ${config.gnssEnabled ? 'simulated GNSS aiding' : 'IMU-only navigation'}.`;
 }
 function scenarioChanged() {
   const play = running || state.done;
   clearBests(); clearBatch(); searchBest = null; trails = []; tuningLog = []; $('tune-chart').hidden = true;
-  $('tune-status').textContent = 'Scenario, feedback, GNSS aiding or actuators changed. Best scores cleared; auto-tune is ready.';
+  $('tune-status').textContent = 'Settings changed. Best scores cleared.';
   updateOutputs(); updateMode(); reset({ play });
 }
 for (const key of gainKeys) {
   $(key).addEventListener('input', () => {
     config[key] = Number($(key).value); updateOutputs(); interactiveTrial = true; autoFlight = false;
     clearBatch(); flightEvents.push({ t: state.t, type: 'gains', gains: gains() });
-    $('gain-note').textContent = 'Live gains changed. Restart to compare these gains from the initial state.';
+    $('gain-note').textContent = 'Gains changed during flight. Restart for a comparable trial.';
   });
 }
 for (const key of scenarioKeys) $(key).addEventListener('input', () => { config[key] = Number($(key).value); scenarioChanged(); });
@@ -150,13 +150,13 @@ function setBusyControls() {
 function startSearch() {
   clearBatch(); search = createSearch({ ...config }); searchBest = null; tuningLog = []; trails = [];
   reset({ play: false }); $('tune-chart').hidden = false; setBusyControls();
-  $('tune-status').textContent = `Evaluating your gains with ${config.controllerFeedback} feedback, then 72 mutations…`;
+  $('tune-status').textContent = `Testing current gains with ${config.controllerFeedback} feedback, then 72 mutations.`;
 }
 function stopSearch(fly = true) {
   search = null; setBusyControls();
   if (searchBest) {
     applyGains(searchBest.gains);
-    $('tune-status').textContent = `Kept ${gainsText(searchBest.gains)}. ${searchBest.state.result.ok ? `Trial score ${searchBest.score}.` : 'No successful trial found; lowest-cost attempt retained.'}`;
+    $('tune-status').textContent = `Kept ${gainsText(searchBest.gains)}. ${searchBest.state.result.ok ? `Score ${searchBest.score}.` : 'No successful trial. Kept the lowest-cost attempt.'}`;
   } else $('tune-status').textContent = 'Search stopped before the first evaluation.';
   if (fly) reset({ keepTrails: true, auto: true });
 }
@@ -173,14 +173,14 @@ function tuneFrame() {
 }
 function batchStatus(prefix) {
   const summary = summarizeBatch(batchResults), total = $('batch-progress').max;
-  $('batch-status').textContent = `${prefix} · ${config.controllerFeedback} feedback · ${config.gnssEnabled ? 'simulated GNSS aided' : 'IMU only'} · ${summary.total} / ${total} scenarios · ${summary.successes} successful / ${summary.failures} failed · ${format(summary.successRate * 100, 1)}% success among completed scenarios. Fixed scenario set, not a probability estimate.`;
+  $('batch-status').textContent = `${prefix}. ${summary.total} of ${total} scenarios completed: ${summary.successes} passed, ${summary.failures} failed. Success rate ${format(summary.successRate * 100, 1)}%. ${config.controllerFeedback === 'sensors' ? 'Sensor' : 'Truth'} feedback; ${config.gnssEnabled ? 'simulated GNSS aided' : 'IMU only'}.`;
 }
 function startBatch() {
   const scenarios = scenarioDefinitions({ ...config });
   clearBatch(); batch = { scenarios, index: 0, resume: running };
   running = false; accumulator = 0; previousTime = null;
   $('batch-progress').max = scenarios.length;
-  $('batch-status').textContent = `Running 0 / ${scenarios.length} fixed scenarios with ${config.controllerFeedback} feedback and ${config.gnssEnabled ? 'simulated GNSS aiding' : 'IMU-only navigation'}; main flight paused.`;
+  $('batch-status').textContent = `Running 0 of ${scenarios.length} scenarios. Main flight paused.`;
   setBusyControls();
 }
 function stopBatch(cancelled = false) {
@@ -188,21 +188,21 @@ function stopBatch(cancelled = false) {
   const resume = batch.resume;
   batch = null; running = resume && !state.done; accumulator = 0; previousTime = null;
   $('run').textContent = state.done ? 'Finished' : running ? 'Pause' : 'Resume';
-  batchStatus(cancelled ? 'Cancelled; partial batch' : 'Batch complete'); setBusyControls();
+  batchStatus(cancelled ? 'Batch cancelled' : 'Batch complete'); setBusyControls();
 }
 function batchFrame() {
   const item = batch.scenarios[batch.index], trial = evaluate(item.config);
   batchResults.push({ ...item, ...trial }); batch.index++;
-  const summary = summarizeBatch(batchResults), row = document.createElement('li');
+  const row = document.createElement('li');
   row.className = trial.state.result.ok ? 'success' : 'failure';
-  row.textContent = `${item.label}: ${trial.state.result.ok ? 'PASS' : 'FAIL'} · score ${trial.score}. ${trial.state.result.ok ? 'All completion criteria met.' : trial.state.result.reason} Running ${summary.successes}/${summary.total} (${format(summary.successRate * 100, 1)}%).`;
+  row.textContent = `${item.label}: ${trial.state.result.ok ? 'Passed' : 'Failed'} · score ${trial.score}. ${trial.state.result.ok ? 'All completion criteria met.' : trial.state.result.reason}`;
   $('batch-results').append(row); $('batch-progress').value = batch.index;
-  batchStatus('Validating');
+  batchStatus('Running batch');
   if (batch.index === batch.scenarios.length) stopBatch();
 }
 $('batch').addEventListener('click', () => { if (batch) stopBatch(true); else if (!search) startBatch(); });
 function updateExportStatus(message = '') {
-  $('export-status').textContent = message || `${state.done ? 'Completed' : 'Partial'} main flight · ${telemetry.length} samples · ${format(state.t, 1)} s. Restart clears the recording.`;
+  $('export-status').textContent = message || `Recorded ${telemetry.length} samples over ${format(state.t, 1)} s.`;
 }
 $('export-csv').addEventListener('click', () => {
   if (state.t !== lastSample) sample();
@@ -213,7 +213,7 @@ $('export-csv').addEventListener('click', () => {
   const link = document.createElement('a');
   link.href = url; link.download = `a3-${config.mode}-${state.controllerFeedback}-flight-${runNumber}-${status}.csv`;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  updateExportStatus(`Downloaded ${status} main flight · ${rows.length} samples through ${format(state.t, 1)} s. No auto-tune or batch trajectories included.`);
+  updateExportStatus(`Downloaded ${status} flight: ${rows.length} samples over ${format(state.t, 1)} s.`);
 });
 function showResult() {
   const r = state.result, trialScore = score(state), catching = r.task === 'catch', landing = r.task === 'landing' || catching;
@@ -223,11 +223,32 @@ function showResult() {
   verdict.className = `verdict${r.ok ? ' ok' : ''}${catching ? ' tower-verdict' : ''}`;
   const heading = document.createElement('strong');
   heading.textContent = `${catching ? r.ok ? 'Caught by tower' : 'Catch missed' : r.ok ? landing ? 'Landed' : 'Hover stabilized' : landing ? 'Landing failed' : 'Stabilization failed'} · ${trialScore}`;
-  const description = r.ok
-    ? landing ? `${format(Math.abs(r.vz), 1)} m/s ${catching ? 'at the arms' : 'touchdown'} · ${format(Math.hypot(r.x, r.y), 1)} m ${catching ? 'capture' : 'pad'} error · ${format(r.fuel, 1)} kg fuel remaining.`
-      : `${format(r.positionError, 2)} m horizontal error · ${format(Math.abs(r.altitudeError), 2)} m height error · ${format(r.tilt, 1)}° tilt. ${state.vehicle.kind === 'monocopter' ? `Uncontrolled yaw: ${format(r.yawRate, 1)}°/s.` : ''}`
-    : r.reason;
-  verdict.append(heading, document.createTextNode(description));
+  verdict.append(heading);
+  if (r.ok) {
+    const metrics = document.createElement('p');
+    metrics.textContent = landing
+      ? `Vertical speed ${format(Math.abs(r.vz), 1)} m/s ${catching ? 'at the arms' : 'at touchdown'}. ${catching ? 'Capture' : 'Pad'} error ${format(Math.hypot(r.x, r.y), 1)} m. Fuel remaining ${format(r.fuel, 1)} kg.`
+      : `Horizontal error ${format(r.positionError, 2)} m. Height error ${format(Math.abs(r.altitudeError), 2)} m. Tilt ${format(r.tilt, 1)}°. ${state.vehicle.kind === 'monocopter' ? `Uncontrolled yaw rate ${format(r.yawRate, 1)}°/s.` : ''}`;
+    verdict.append(metrics);
+  } else {
+    if (r.failures?.length) {
+      const failures = document.createElement('ul');
+      failures.className = 'verdict-list';
+      for (const failure of r.failures) {
+        const item = document.createElement('li');
+        item.textContent = failure;
+        failures.append(item);
+      }
+      verdict.append(failures);
+    } else {
+      const reason = document.createElement('p');
+      reason.textContent = r.reason;
+      verdict.append(reason);
+    }
+    const action = document.createElement('p');
+    action.textContent = 'Adjust the settings and restart to try again.';
+    verdict.append(action);
+  }
   $('run').disabled = true; $('run').textContent = 'Finished'; $('disturb').disabled = true;
 }
 function readPalette() {
@@ -263,7 +284,7 @@ function render() {
   $('yaw').textContent = format(a.yaw / RAD, 1); $('yaw-rate').textContent = format(state.rates[2] / RAD, 1);
   $('mass').textContent = format(mass, 1); $('thrust').textContent = format(state.thrust);
   $('fuel').textContent = format(state.fuel, 1); $('clock').textContent = `T+${format(state.t, 1).padStart(4, '0')} s`;
-  $('phase').textContent = search ? 'AUTO-TUNING' : batch ? 'BATCH · MAIN FLIGHT PAUSED' : state.phase.toUpperCase();
+  $('phase').textContent = search ? 'Auto-tuning' : batch ? 'Batch running; flight paused' : state.phase.charAt(0).toUpperCase() + state.phase.slice(1).toLowerCase();
   $('gimbal').textContent = `gimbal ${format(state.gimbal[0] / RAD, 1)}° / ${format(state.gimbal[1] / RAD, 1)}°`;
   $('throttle').textContent = `throttle ${format(state.thrust / state.vehicle.maxThrust * 100)}%`;
   const d = diagnostics(state, config), distance = value => Number.isFinite(value) ? `${format(value, 1)} m` : value === Infinity ? '∞ · no braking authority' : value === -Infinity ? '−∞ · cannot stop' : '—';
@@ -273,7 +294,7 @@ function render() {
   $('braking-distance').textContent = distance(d.brakingDistance);
   $('braking-remaining').textContent = distance(d.availableBrakingDistance);
   $('braking-margin').textContent = distance(d.availableBrakingDistance - d.brakingDistance);
-  $('gimbal-saturation').textContent = d.gimbalSaturated ? 'SATURATED · angle limit' : 'Within angle limit';
+  $('gimbal-saturation').textContent = d.gimbalSaturated ? 'At angle limit' : 'Within angle limit';
   $('gimbal-saturation').classList.toggle('warning', d.gimbalSaturated);
   $('diagnostic-warning').textContent = d.warnings.join(' ');
   $('diagnostic-warning').classList.toggle('warning', d.warnings.length > 0);
@@ -293,12 +314,12 @@ function render() {
   const gnss = state.sensors.gnss;
   const gnssAge = gnss ? Math.max(0, state.t - gnss.t) : null;
   $('sensor-gnss').textContent = !config.gnssEnabled
-    ? 'Simulated GNSS OFF · no observations. IMU-only XY dead reckoning drifts.'
+    ? 'Simulated GNSS is off. No observations. IMU-only horizontal navigation drifts.'
     : gnss
-      ? `Simulated GNSS ${gnssAge > 1.5 / SENSOR_MODEL.gnssHz ? 'STALE' : 'sample held'} · last T+${format(gnss.t, 2)} s (${format(gnssAge, 2)} s old): X ${format(gnss.x, 2)} m, Y ${format(gnss.y, 2)} m; Vx ${format(gnss.vx, 2)} m/s, Vy ${format(gnss.vy, 2)} m/s. Observations, not estimates.`
-      : 'Simulated GNSS waiting · no observation yet; X/Y/Vx/Vy unavailable.';
-  $('sensor-gyro').textContent = `Raw gyro X/Y/Z: ${state.sensors.imu.gyro.map(value => format(value / RAD, 3)).join(' / ')}°/s. Preflight estimated bias: ${state.estimate.gyroBiasEstimate.map(value => format(value / RAD, 3)).join(' / ')}°/s; subtracted for propagation and sensor-feedback rates.`;
-  $('sensor-model').textContent = `${SENSOR_MODEL.imuHz} Hz IMU / ${SENSOR_MODEL.barometerHz} Hz barometer / ${SENSOR_MODEL.gnssHz} Hz simulated GNSS · seed ${config.sensorSeed}. Preflight: ${SENSOR_MODEL.preflightSamples} static accelerometer/gyro samples. IMU/barometer samples T+${format(state.sensors.imu.t, 2)} / ${format(state.sensors.barometer.t, 2)} s. Illustrative noise σ: acceleration ${format(SENSOR_MODEL.accelNoise, 3)} m/s², gyro ${format(SENSOR_MODEL.gyroNoise / RAD, 2)}°/s, pressure ${format(SENSOR_MODEL.pressureNoise, 1)} Pa; fixed bias σ ${format(SENSOR_MODEL.accelBias, 3)} m/s² / ${format(SENSOR_MODEL.gyroBias / RAD, 2)}°/s / ${format(SENSOR_MODEL.pressureBias, 1)} Pa. GNSS position/velocity noise σ ${format(SENSOR_MODEL.gnssPositionNoise, 2)} m / ${format(SENSOR_MODEL.gnssVelocityNoise, 2)} m/s; fixed bias σ ${format(SENSOR_MODEL.gnssPositionBias, 2)} m / ${format(SENSOR_MODEL.gnssVelocityBias, 2)} m/s. Illustrative close-pad accuracy, not a physical GNSS performance claim.`;
+      ? `Simulated GNSS ${gnssAge > 1.5 / SENSOR_MODEL.gnssHz ? 'is stale' : 'sample held'}. Last sample at T+${format(gnss.t, 2)} s, age ${format(gnssAge, 2)} s. X ${format(gnss.x, 2)} m; Y ${format(gnss.y, 2)} m; Vx ${format(gnss.vx, 2)} m/s; Vy ${format(gnss.vy, 2)} m/s. These are observations, not estimates.`
+      : 'Waiting for simulated GNSS. X, Y, Vx and Vy observations are unavailable.';
+  $('sensor-gyro').textContent = `Raw gyro X/Y/Z: ${state.sensors.imu.gyro.map(value => format(value / RAD, 3)).join(' / ')}°/s. Estimated preflight bias X/Y/Z: ${state.estimate.gyroBiasEstimate.map(value => format(value / RAD, 3)).join(' / ')}°/s. This bias is subtracted for propagation and sensor-feedback rates.`;
+  $('sensor-model').textContent = `Sample rates: IMU ${SENSOR_MODEL.imuHz} Hz; barometer ${SENSOR_MODEL.barometerHz} Hz; simulated GNSS ${SENSOR_MODEL.gnssHz} Hz. Seed ${config.sensorSeed}. Preflight uses ${SENSOR_MODEL.preflightSamples} static accelerometer and gyro samples. Latest IMU sample T+${format(state.sensors.imu.t, 2)} s; barometer T+${format(state.sensors.barometer.t, 2)} s. Noise σ: acceleration ${format(SENSOR_MODEL.accelNoise, 3)} m/s²; gyro ${format(SENSOR_MODEL.gyroNoise / RAD, 2)}°/s; pressure ${format(SENSOR_MODEL.pressureNoise, 1)} Pa. Fixed bias σ: acceleration ${format(SENSOR_MODEL.accelBias, 3)} m/s²; gyro ${format(SENSOR_MODEL.gyroBias / RAD, 2)}°/s; pressure ${format(SENSOR_MODEL.pressureBias, 1)} Pa. GNSS noise σ: position ${format(SENSOR_MODEL.gnssPositionNoise, 2)} m; velocity ${format(SENSOR_MODEL.gnssVelocityNoise, 2)} m/s. GNSS fixed bias σ: position ${format(SENSOR_MODEL.gnssPositionBias, 2)} m; velocity ${format(SENSOR_MODEL.gnssVelocityBias, 2)} m/s. These illustrative values represent close-pad accuracy, not measured GNSS performance.`;
 }
 function frame(timestamp) {
   const elapsed = previousTime === null ? 0 : clamp((timestamp - previousTime) / 1000, 0, 0.05);

@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="description" content="Group A3's educational 3D rigid-body flight simulator. Explore shared pitch/roll PID, rocket landing and tilt-prop stabilization.">
-  <title>A3 · 3D flight control lab</title>
+  <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
+  <title>Rocket flight simulator | Group A3</title>
   <link rel="stylesheet" href="simulator.css">
   <script type="module" src="simulator-app.js"></script>
 </head>
@@ -13,8 +13,8 @@
   <div class="scene-column">
     <div class="scene">
       <canvas id="scene" role="img" aria-label="Live 3D rigid-body flight, trajectory history and landing pad; drag to orbit the camera"></canvas>
-      <div class="scene-label"><span class="live-dot"></span><span id="scene-mode">A3 / 3D ROCKET LANDING</span><span id="clock">T+00.0 s</span></div>
-      <div class="scene-footer"><span id="phase">COAST</span><span id="scene-range">3D · 1 KM INITIAL CLEARANCE</span></div>
+      <div class="scene-label"><span class="live-dot"></span><span id="scene-mode">Rocket landing</span><span id="clock">T+00.0 s</span></div>
+      <div class="scene-footer"><span id="phase">Coasting</span><span id="scene-range">Initial clearance: 1 km</span></div>
       <div id="verdict" class="verdict" hidden aria-live="polite"></div>
     </div>
     <div class="camera-controls">
@@ -23,26 +23,25 @@
       <button id="disturb" class="ghost">Disturb attitude</button>
     </div>
     <div class="readouts" aria-label="Actual simulated rigid-body telemetry, not controller estimates" aria-live="off">
-      <div><b id="altitude">1,000</b>actual clearance, m</div>
-      <div><b id="vertical">−25.0</b>actual vertical speed, m/s</div>
-      <div><b id="horizontal">0.0</b>actual horizontal speed, m/s</div>
-      <div><b id="pitch">8.0</b>actual pitch, °</div>
-      <div><b id="roll">−6.0</b>actual roll, °</div>
-      <div><b id="yaw">0.0</b>actual yaw, °</div>
-      <div><b id="yaw-rate">0.0</b>actual yaw rate, °/s</div>
-      <div><b id="mass">50.0</b>total mass, kg</div>
-      <div><b id="thrust">0</b>thrust, N</div>
-      <div id="fuel-readout"><b id="fuel">15.0</b>fuel, kg</div>
+      <div><b id="altitude">1,000</b>Clearance, m</div>
+      <div><b id="vertical">−25.0</b>Vertical speed, m/s</div>
+      <div><b id="horizontal">0.0</b>Lateral speed, m/s</div>
+      <div><b id="pitch">8.0</b>Pitch, °</div>
+      <div><b id="roll">−6.0</b>Roll, °</div>
+      <div><b id="yaw">0.0</b>Yaw, °</div>
+      <div><b id="yaw-rate">0.0</b>Yaw rate, °/s</div>
+      <div><b id="mass">50.0</b>Total mass, kg</div>
+      <div><b id="thrust">0</b>Thrust, N</div>
+      <div id="fuel-readout"><b id="fuel">15.0</b>Fuel, kg</div>
     </div>
-    <p class="caption">GROUP A3 · AISSMS IOIT · EDUCATIONAL MODEL / NOT FLIGHT SOFTWARE</p>
+    <p class="caption">Actual simulated values, not controller estimates.<br>Group A3 · AISSMS IOIT · Not flight software.</p>
   </div>
 
   <aside class="panel">
     <header>
-      <div class="eyebrow">GROUP A3 / 3D FLIGHT CONTROL LAB</div>
-      <h1>Rigid-body flight simulator <span class="version">6 DOF / TVC</span></h1>
-      <p class="lede" id="mode-description">One kilometre up. One pad to reach. Tune shared pitch and roll PID gains to guide a gimballed rocket onto the ground.</p>
-      <p class="model-note" id="mode-warning">Illustrative physics, not measured hardware or flight-qualified control software. No active yaw controller.</p>
+      <h1>Rocket flight simulator</h1>
+      <p class="lede" id="mode-description">Tune pitch and roll PID gains to land a gimballed rocket from 1 km.</p>
+      <p class="model-note" id="mode-warning">Illustrative physics, not measured hardware or flight software. There is no yaw controller.</p>
     </header>
 
     <div class="controls">
@@ -52,58 +51,28 @@
       <button id="export-csv" class="ghost">Download CSV</button>
     </div>
     <div class="scores" aria-label="Flight scores">
-      <div><b id="current-score">—</b>this flight</div>
-      <div><b id="your-score">—</b>your best<span id="your-gains">successful trials</span></div>
-      <div><b id="auto-score">—</b>auto-tune best<span id="auto-gains">successful trials</span></div>
+      <div><b id="current-score">—</b><span>This flight</span></div>
+      <div><b id="your-score">—</b><span>Your best<span id="your-gains">Successful trials</span></span></div>
+      <div><b id="auto-score">—</b><span>Auto-tune best<span id="auto-gains">Successful trials</span></span></div>
     </div>
-    <p id="export-status" class="export-status" role="status">Main-flight telemetry only · restart clears the recording.</p>
+    <div class="export-status"><p>CSV contains main-flight telemetry. Restart clears the recording.</p><p id="export-status" role="status"></p></div>
 
-    <div class="tuning-stack">
     <section class="box pid-box">
-      <h2><span class="section-index">01</span> Shared pitch / roll PID</h2>
-      <div class="slider-row"><label for="kp">Kp, proportional</label><output id="kp-output" for="kp">4.0</output><input id="kp" type="range" min="0" max="10" step="0.1" value="4"><small>Corrects pitch and roll error independently.</small></div>
-      <div class="slider-row"><label for="ki">Ki, integral</label><output id="ki-output" for="ki">0.2</output><input id="ki" type="range" min="0" max="10" step="0.1" value="0.2"><small>Removes sustained attitude error with anti-windup.</small></div>
-      <div class="slider-row"><label for="kd">Kd, derivative</label><output id="kd-output" for="kd">3.0</output><input id="kd" type="range" min="0" max="10" step="0.1" value="3"><small>Damps angular motion. Includes anti-windup.</small></div>
-      <div class="tune-row"><button id="tune" class="ghost">Auto-tune</button><p id="tune-status" role="status">Try your own gains, or search 73 candidates.</p></div>
+      <h2>Pitch and roll PID</h2>
+      <div class="slider-row"><label for="kp">Kp, proportional</label><output id="kp-output" for="kp">4.0</output><input id="kp" type="range" min="0" max="10" step="0.1" value="4"><small>Corrects attitude error on each axis.</small></div>
+      <div class="slider-row"><label for="ki">Ki, integral</label><output id="ki-output" for="ki">0.2</output><input id="ki" type="range" min="0" max="10" step="0.1" value="0.2"><small>Removes sustained error with anti-windup.</small></div>
+      <div class="slider-row"><label for="kd">Kd, derivative</label><output id="kd-output" for="kd">3.0</output><input id="kd" type="range" min="0" max="10" step="0.1" value="3"><small>Damps angular motion.</small></div>
+      <div class="tune-row"><button id="tune" class="ghost">Auto-tune</button><p id="tune-status" role="status">Try your gains or search 73 candidates.</p></div>
       <canvas id="tune-chart" height="90" hidden role="img" aria-label="Scores of auto-tune candidates and best successful trial"></canvas>
-      <p id="gain-note" class="small">Gains apply live. Restart for a comparable flight.</p>
-    </section>
-    <section class="box chart-box">
-      <h2><span class="section-index">03</span> Attitude tracking</h2>
-      <h3>Pitch, °</h3>
-      <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
-      <h3>Roll, °</h3>
-      <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
-      <div class="legend"><span><i></i>truth</span><span><i class="reference"></i>reference</span><span><i class="estimate"></i>sensor estimate</span></div>
-    </section>
-    </div>
-
-    <section class="box close-box">
-      <h2><span class="section-index">02</span> Thrust-vector close-up</h2>
-      <canvas id="closeup" height="190" role="img" aria-label="3D vehicle attitude, geometry, thrust-vector gimbal and velocity direction"></canvas>
-      <div class="legend"><span><i class="reference"></i>target axis</span><span><i></i>velocity</span></div>
-      <div class="close-meta"><span id="gimbal">gimbal 0.0° / 0.0°</span><span id="throttle">throttle 0%</span><span id="twr">T/W 0.00</span></div>
-      <dl class="diagnostics" aria-label="Actual rigid-body flight diagnostics, independent of selected controller feedback">
-        <div><dt>Current T/W</dt><dd id="current-twr">0.00</dd></div>
-        <div><dt>Lateral target error</dt><dd id="lateral-error">60.0 m</dd></div>
-        <div><dt>Stopping distance</dt><dd id="braking-distance">—</dd></div>
-        <div><dt>Distance to target plane</dt><dd id="braking-remaining">—</dd></div>
-        <div><dt>Braking margin</dt><dd id="braking-margin">—</dd></div>
-        <div><dt>Gimbal authority</dt><dd id="gimbal-saturation">Available</dd></div>
-      </dl>
-      <p id="diagnostic-warning" class="small" role="status"></p>
-      <p class="small">Scene readouts, diagnostics, scores and contact/capture decisions use actual rigid-body truth, independent of controller feedback. Stopping distance uses actual descent speed, available vertical thrust and actuator response; it is a diagnostic estimate, not a landing guarantee.</p>
-      <h3>Yaw / uncontrolled rotation</h3>
-      <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
-      <p class="small">The monocopter propeller applies reaction torque and can spin the body. Rotational drag opposes rotation; there is no hidden yaw stabilization or yaw actuator.</p>
+      <p id="gain-note" class="small">Both axes use these gains. Changes apply live. Restart to compare flights.</p>
     </section>
 
 
     <section class="box scenario-box">
-      <h2><span class="section-index">04</span> Scenario</h2>
+      <h2>Scenario</h2>
       <div class="mode-row"><label for="mode">Flight mode</label><select id="mode"><option value="landing">Rocket landing</option><option value="catch">Tower catch</option><option value="stabilize">Straight-up stabilization</option><option value="monocopter">Tilt-prop monocopter</option></select></div>
-      <div class="mode-row"><label for="controllerFeedback">Controller feedback</label><select id="controllerFeedback"><option value="sensors" selected>Sensor estimates (default)</option><option value="truth">Ideal truth (comparison baseline)</option></select></div>
-      <div class="mode-row"><label for="gnssEnabled">GNSS aiding (simulated)</label><select id="gnssEnabled"><option value="true" selected>Enabled · GNSS-aided IMU (default)</option><option value="false">Disabled · IMU-only · drifts</option></select></div>
+      <div class="mode-row"><label for="controllerFeedback">Controller feedback</label><select id="controllerFeedback"><option value="sensors" selected>Sensor estimates</option><option value="truth">Ideal truth comparison</option></select></div>
+      <div class="mode-row"><label for="gnssEnabled">Simulated GNSS aiding</label><select id="gnssEnabled"><option value="true" selected>Enabled: GNSS-aided IMU</option><option value="false">Disabled: IMU only, with drift</option></select></div>
       <div id="rocket-fields">
         <div class="slider-row"><label for="dryMass">Rocket dry mass</label><output id="dryMass-output" for="dryMass">35 kg</output><input id="dryMass" type="range" min="5" max="150" step="1" value="35"></div>
         <div class="slider-row"><label for="fuelMass">Initial rocket fuel</label><output id="fuelMass-output" for="fuelMass">15 kg</output><input id="fuelMass" type="range" min="0" max="30" step="0.5" value="15"></div>
@@ -116,37 +85,66 @@
       <div class="slider-row"><label for="wind">X crosswind</label><output id="wind-output" for="wind">0 m/s</output><input id="wind" type="range" min="-15" max="15" step="1" value="0"></div>
       <div class="slider-row"><label for="windY">Y crosswind</label><output id="windY-output" for="windY">0 m/s</output><input id="windY" type="range" min="-15" max="15" step="1" value="0"></div>
       <div class="slider-row"><label for="offset">Landing starting X offset</label><output id="offset-output" for="offset">−60 m</output><input id="offset" type="range" min="-200" max="200" step="10" value="-60"></div>
-      <p class="small">Scenario, feedback or GNSS-aiding changes restart the trial and clear best scores, tuning traces and batch results. Auto-tune and batch trials use the selected feedback and aiding; success is not guaranteed. Wind acts along the world X and Y axes. Selected mass changes inertia and thrust-to-weight; some settings cannot sustain flight.</p>
+      <details class="technical-details"><summary>Read scenario behavior</summary><p class="small">Scenario, feedback and GNSS changes restart the trial and clear best scores, tuning traces and batch results. Auto-tune and batch trials use the selected feedback and aiding. Success is not guaranteed.</p><p class="small">Wind acts along world X and Y. Mass changes inertia and thrust-to-weight ratio. Some settings cannot sustain flight.</p></details>
     </section>
 
-    <section class="box actuator-box">
-      <h2><span class="section-index">05</span> Actuator limits &amp; response</h2>
+    <section class="box close-box">
+      <h2>Vehicle and diagnostics</h2>
+      <canvas id="closeup" height="190" role="img" aria-label="3D vehicle attitude, geometry, thrust-vector gimbal and velocity direction"></canvas>
+      <div class="legend"><span><i class="reference"></i>Target axis</span><span><i></i>Velocity</span></div>
+      <div class="close-meta"><span id="gimbal">Gimbal: 0.0° / 0.0°</span><span id="throttle">Throttle: 0%</span><span id="twr">T/W: 0.00</span></div>
+      <dl class="diagnostics" aria-label="Actual rigid-body flight diagnostics, independent of selected controller feedback">
+        <div><dt>Current T/W</dt><dd id="current-twr">0.00</dd></div>
+        <div><dt>Lateral target error</dt><dd id="lateral-error">60.0 m</dd></div>
+        <div><dt>Stopping distance</dt><dd id="braking-distance">—</dd></div>
+        <div><dt>Distance to target plane</dt><dd id="braking-remaining">—</dd></div>
+        <div><dt>Braking margin</dt><dd id="braking-margin">—</dd></div>
+        <div><dt>Gimbal authority</dt><dd id="gimbal-saturation">Available</dd></div>
+      </dl>
+      <p id="diagnostic-warning" class="small" role="status"></p>
+      <details class="technical-details"><summary>Read diagnostic limits</summary><p class="small">Scene values, diagnostics, scores and landing or capture decisions use actual simulated state, not controller estimates. Stopping distance uses descent speed, available vertical thrust and actuator response. It is an estimate, not a landing guarantee.</p></details>
+    </section>
+
+    <section class="box chart-box">
+      <h2>Attitude tracking</h2>
+      <h3>Pitch, °</h3>
+      <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
+      <h3>Roll, °</h3>
+      <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
+      <div class="legend"><span><i></i>Truth</span><span><i class="reference"></i>Reference</span><span><i class="estimate"></i>Sensor estimate</span></div>
+      <h3>Yaw, °</h3>
+      <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
+      <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
+    </section>
+
+    <details class="box actuator-box">
+      <summary>Adjust actuator limits and response</summary>
       <div class="slider-row" id="rocket-thrust-row"><label for="maxThrust">Rocket maximum thrust</label><output id="maxThrust-output" for="maxThrust">1,200 N</output><input id="maxThrust" type="range" min="100" max="4000" step="25" value="1200"></div>
       <div class="slider-row" id="mono-thrust-row" hidden><label for="monoMaxThrust">Propeller maximum thrust</label><output id="monoMaxThrust-output" for="monoMaxThrust">45 N</output><input id="monoMaxThrust" type="range" min="5" max="200" step="1" value="45"></div>
       <div class="slider-row"><label for="gimbalLimitDeg">Maximum gimbal angle</label><output id="gimbalLimitDeg-output" for="gimbalLimitDeg">12°</output><input id="gimbalLimitDeg" type="range" min="1" max="30" step="1" value="12"></div>
       <div class="slider-row"><label for="gimbalLag">Servo time constant</label><output id="gimbalLag-output" for="gimbalLag">80 ms</output><input id="gimbalLag" type="range" min="0" max="1000" step="10" value="80"></div>
       <div class="slider-row"><label for="throttleLag">Thrust time constant</label><output id="throttleLag-output" for="throttleLag">180 ms</output><input id="throttleLag" type="range" min="0" max="1500" step="10" value="180"></div>
       <div class="slider-row"><label for="thrustDelay">Thrust command delay</label><output id="thrustDelay-output" for="thrustDelay">0 ms</output><input id="thrustDelay" type="range" min="0" max="1000" step="10" value="0"></div>
-      <p class="small">Illustrative actuator model, not measured servo or motor data. Milliseconds are converted to simulation seconds. Changes restart the flight and clear best scores, search traces and batch results.</p>
-    </section>
+      <p class="small">This actuator model does not use measured servo or motor data. Milliseconds convert to simulation seconds. Changes restart the flight and clear best scores, tuning traces and batch results.</p>
+    </details>
 
-    <section class="box batch-box">
-      <h2><span class="section-index">06</span> Repeatable scenario validation</h2>
+    <details class="box batch-box">
+      <summary>Run repeatable scenario validation</summary>
       <button id="batch" class="ghost">Run scenario batch</button>
       <progress id="batch-progress" max="1" value="0" aria-label="Completed validation scenarios"></progress>
-      <p id="batch-status" class="small" role="status">Predefined wind, mass and starting-attitude perturbations using selected feedback, current gains and actuator settings. Not a Monte Carlo reliability estimate.</p>
+      <p id="batch-status" class="small" role="status">Trials vary wind, mass and starting attitude with selected feedback, current gains and actuator settings. This is not a Monte Carlo reliability estimate.</p>
       <ol id="batch-results" class="batch-results"></ol>
-    </section>
+    </details>
 
-    <section class="box sensor-box">
-      <h2><span class="section-index">07</span> Sensor estimates vs true state</h2>
-      <p><strong id="feedback-status" role="status">Controller feedback: SENSORS · simulated GNSS-aided XY and preflight-calibrated gyro rates.</strong></p>
-      <p class="small">Illustrative MPU6050 IMU, BMP280 barometer and simulated GNSS: discrete sampling, seeded noise and fixed bias; not measured hardware specifications. Raw observations are separate from estimated attitude, height, velocity and position. GNSS samples are noisy pad-relative X/Y position and velocity in the known target frame, not direct controller access to true state.</p>
-      <p class="small">Static preflight accelerometer alignment initializes roll/pitch; the measured gyro mean estimates rate bias. Both assume a motionless calibration interval. In flight, calibrated gyro propagation does not treat powered thrust acceleration as gravity. Heading starts at zero without an absolute heading reference; XY GNSS does not directly measure yaw. Barometric height starts from its observed sample. Simulated GNSS corrects IMU-predicted XY by default; disabling it leaves drifting dead reckoning from the known scenario position and zero lateral velocity. Residual bias, heading error and illustrative sensing limits can still cause failures.</p>
+    <p class="feedback-status"><strong id="feedback-status" role="status">Controller feedback uses sensor estimates with simulated GNSS aiding and preflight-calibrated gyro rates.</strong></p>
+    <details class="box sensor-box">
+      <summary>Inspect sensor estimates and limits</summary>
+      <p class="small">The MPU6050 IMU, BMP280 barometer and GNSS models use discrete samples, seeded noise and fixed bias. They do not use measured hardware specifications. Raw observations are separate from estimated attitude, height, velocity and position. GNSS provides noisy pad-relative X/Y position and velocity in the known target frame, not direct access to true state.</p>
+      <details class="technical-details"><summary>Read calibration and drift assumptions</summary><p class="small">Static preflight accelerometer alignment initializes roll and pitch. The measured gyro mean estimates rate bias. Both require a motionless calibration interval. In flight, calibrated gyro propagation does not treat powered thrust acceleration as gravity.</p><p class="small">Heading starts at zero without an absolute reference. XY GNSS does not directly measure yaw. Barometric height starts from its observed sample. GNSS corrects IMU-predicted XY by default. Without GNSS, position drifts from the known scenario position and zero initial lateral velocity. Residual bias, heading error and sensing limits can still cause failures.</p></details>
       <p id="sensor-model" class="small"></p>
-      <p id="sensor-gnss" class="small" aria-live="off">Simulated GNSS waiting · no observation yet.</p>
+      <p id="sensor-gnss" class="small" aria-live="off">Simulated GNSS has no observation yet.</p>
       <p id="sensor-gyro" class="small" aria-live="off"></p>
-      <table class="sensor-readouts"><thead><tr><th scope="col">Quantity</th><th scope="col">Actual truth</th><th scope="col">Estimate / calibrated gyro</th></tr></thead><tbody>
+      <table class="sensor-readouts"><thead><tr><th scope="col">Quantity</th><th scope="col">True state</th><th scope="col">Estimate / calibrated gyro</th></tr></thead><tbody>
         <tr><th scope="row">Pitch, °</th><td id="sensor-pitch-truth">—</td><td id="sensor-pitch-estimate">—</td></tr>
         <tr><th scope="row">Roll, °</th><td id="sensor-roll-truth">—</td><td id="sensor-roll-estimate">—</td></tr>
         <tr><th scope="row">Clearance, m</th><td id="sensor-altitude-truth">—</td><td id="sensor-altitude-estimate">—</td></tr>
@@ -163,10 +161,10 @@
       <h3>Clearance, m</h3><canvas id="altitude-chart" height="110" role="img" aria-label="True clearance and barometric clearance estimate over time"></canvas>
       <h3>Vertical speed, m/s</h3><canvas id="vertical-chart" height="110" role="img" aria-label="True and estimated vertical speed over time"></canvas>
       <div class="legend"><span><i></i>truth</span><span><i class="reference"></i>estimate</span></div>
-    </section>
+    </details>
 
-    <section class="box diagram-box">
-      <h2><span class="section-index">08</span> Control loops · selected feedback</h2>
+    <details class="box diagram-box">
+      <summary>Inspect the control loops</summary>
       <div class="diagram-scroll">
         <svg class="diagram" viewBox="0 0 740 280" role="img" aria-label="World X and Y position guidance sets pitch and roll references; shared attitude PID commands two-axis thrust vectoring; vertical guidance sets thrust. Selected sensor estimates or ideal comparison truth feed back. Yaw is not actuated.">
           <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10z" fill="currentColor"/></marker></defs>
@@ -175,10 +173,11 @@
           <g class="diagram-text"><text x="161" y="62">X / Y position PD</text><text class="sub" x="161" y="79">world-frame guidance</text><text x="381" y="61">Pitch / roll PID</text><text class="sub" x="381" y="80">shared Kp / Ki / Kd</text><text x="533" y="61">2-axis gimbal</text><text class="sub" x="533" y="79">finite angle + lag</text><text x="381" y="146">Vertical guidance</text><text class="sub" x="381" y="166">land / climb / hold</text><text x="675" y="85">6-DOF body</text><text class="sub" x="675" y="106">quaternion</text><text class="sub" x="675" y="123">mass + inertia</text><text class="sub" x="675" y="140">drag + gravity</text><text class="sub" x="675" y="157">free yaw</text><text class="sub" x="30" y="48">x,y = 0</text><text class="sub" x="244" y="52">tilt refs</text><text class="sub" x="600" y="52">force</text><text class="sub" x="531" y="146">thrust</text><text class="sub" x="680" y="10">3D wind</text><text class="sub" x="198" y="147">height / speed target</text><text class="sub" x="509" y="208">height, vertical speed, tilt</text><text class="sub" x="475" y="237">attitude, body angular rates</text><text class="sub" x="390" y="263">X / Y position, lateral velocity</text><text class="sub" x="52" y="86">+</text><text class="sub" x="80" y="98">−</text><text class="sub" x="267" y="86">+</text><text class="sub" x="295" y="98">−</text></g>
         </svg>
       </div>
-      <p class="small">Feedback paths use the selected sensor estimates or ideal-truth comparison baseline. Sensor mode uses gyro-propagated attitude, simulated GNSS-aided IMU XY (or drifting IMU-only XY when disabled), barometric clearance and vertical speed, and preflight-bias-calibrated gyro rates; no hidden true XY enters sensor feedback. Mass, inertia, fuel and actuator position remain known model parameters. Outer guidance requests pitch and roll; the same gains tune both inner loops. Two-axis thrust vectoring provides attitude torque only while thrust is available. Vertical guidance commands finite throttle. Rocket thrust pivots below the centre of mass; the monocopter propeller pivots above it, reversing the torque sign. Neither mode has a yaw actuator or absolute heading aid.</p>
-    </section>
-      <section class="box platform-box" aria-labelledby="platform-title">
-        <h2 id="platform-title">Platform electronics</h2>
+      <p class="small">Feedback uses the selected sensor estimates or ideal truth comparison. Sensor mode uses gyro-propagated attitude, GNSS-aided IMU XY, barometric clearance and vertical speed, and preflight-bias-calibrated gyro rates. Disabling GNSS leaves drifting IMU-only XY. No hidden true XY enters sensor feedback. Mass, inertia, fuel and actuator position remain known model parameters.</p>
+      <p class="small">Outer guidance requests pitch and roll. Both inner loops use the same PID gains. Two-axis thrust vectoring produces attitude torque only while thrust is available. Vertical guidance commands finite throttle. Rocket thrust pivots below the centre of mass. Monocopter thrust pivots above it, reversing the torque sign. Neither mode has a yaw actuator or absolute heading aid.</p>
+    </details>
+      <details class="box platform-box" aria-labelledby="platform-title">
+        <summary id="platform-title">Platform electronics</summary>
         <dl class="platform-specs">
           <dt>MCU</dt><dd>STM32F411CCU · real-time flight controller</dd>
           <dt>IMU</dt><dd>MPU6050 · 3-axis accelerometer + 3-axis gyroscope</dd>
@@ -191,7 +190,7 @@
           <dt>Position / range</dt><dd>Simulated GNSS aiding; physical GNSS module not selected. Downward radar/lidar remains proposed for low-altitude range.</dd>
         </dl>
         <p class="small">Hardware reference only. This simulator is not connected to an MCU or sensors; radio, storage, servo models and pin assignments are not yet specified.</p>
-      </section>
+      </details>
 
   </aside>
 </main>
