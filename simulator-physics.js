@@ -14,7 +14,7 @@ export const DEFAULTS = Object.freeze({
   targetAltitude: 15, controllerFeedback: 'sensors', gnssEnabled: true,
   maxThrust: 1200, monoMaxThrust: 45, gimbalLimitDeg: null,
   gimbalLag: 0.08, throttleLag: null, thrustDelay: 0, sensorSeed: 7319,
-  initialRollDeg: -6, initialPitchDeg: 8, initialYawDeg: 0,
+  initialRollDeg: -6, initialPitchDeg: null, initialYawDeg: 0,
 });
 export const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
@@ -108,11 +108,11 @@ export function newState(config = DEFAULTS) {
   if (c.controllerFeedback !== 'sensors' && c.controllerFeedback !== 'truth') {
     throw new RangeError('controllerFeedback must be sensors or truth');
   }
-  const roll = c.initialRollDeg * RAD, pitch = c.initialPitchDeg * RAD;
+  const landing = c.mode === 'landing' || c.mode === 'catch';
+  const roll = c.initialRollDeg * RAD, pitch = (c.initialPitchDeg ?? (landing ? 25 : 8)) * RAD;
   const cr = Math.cos(roll / 2), sr = Math.sin(roll / 2);
   const cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
   const cy = Math.cos(c.initialYawDeg * RAD / 2), sy = Math.sin(c.initialYawDeg * RAD / 2);
-  const landing = c.mode === 'landing' || c.mode === 'catch';
   const s = {
     t: 0, x: landing ? c.offset : 0, y: 0, z: 0,
     vx: 0, vy: 0, vz: landing ? -25 : 0,
@@ -172,7 +172,12 @@ function controller(s, c, dt) {
   }
   let az;
   if (landing) {
-    const vRef = -Math.min(35, Math.sqrt(0.8 ** 2 + 2 * 4 * h));
+    let vRef = -Math.min(35, Math.sqrt(0.8 ** 2 + 2 * 4 * h));
+    // A tilted entry needs alignment time before committing to terminal descent.
+    // Use only the selected navigation feedback, never actual position in sensor mode.
+    if (h < 60 && (Math.hypot(f.x, f.y) > P.padTolerance / 2 || Math.hypot(f.vx, f.vy) > 0.5)) {
+      vRef = Math.max(vRef, -3);
+    }
     const braking = vRef > -35 ? clamp(-4 * f.vz / -vRef, 0, 8) : 0;
     az = braking + 2.5 * (vRef - f.vz);
   } else {

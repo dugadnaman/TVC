@@ -6,7 +6,7 @@
   <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
   <title>Rocket flight simulator | Group A3</title>
   <link rel="stylesheet" href="simulator.css?v=fixed-scene-20261126">
-  <script type="module" src="simulator-app.js"></script>
+  <script type="module" src="simulator-app.js?v=scene-20261126"></script>
 </head>
 <body>
 <main class="workspace">
@@ -18,7 +18,7 @@
       <div id="verdict" class="verdict" hidden aria-live="polite"></div>
     </div>
     <div class="camera-controls">
-      <label for="camera">Camera <select id="camera"><option value="perspective">Perspective</option><option value="front" selected>Front</option><option value="side">Side</option><option value="top">Top</option></select></label>
+      <label for="camera">Camera <select id="camera"><option value="perspective" selected>Perspective</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option></select></label>
       <span>Drag scene to orbit</span>
       <button id="disturb" class="ghost">Disturb attitude</button>
     </div>
@@ -26,7 +26,7 @@
       <div><b id="altitude">1,000</b>Clearance, m</div>
       <div><b id="vertical">−25.0</b>Vertical speed, m/s</div>
       <div><b id="horizontal">0.0</b>Lateral speed, m/s</div>
-      <div><b id="pitch">8.0</b>Pitch, °</div>
+      <div><b id="pitch">25.0</b>Pitch, °</div>
       <div><b id="roll">−6.0</b>Roll, °</div>
       <div><b id="yaw">0.0</b>Yaw, °</div>
       <div><b id="yaw-rate">0.0</b>Yaw rate, °/s</div>

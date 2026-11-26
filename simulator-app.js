@@ -1,6 +1,6 @@
-import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js';
-import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js';
-import { FlightRenderer, drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js';
+import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=scene-20261126';
+import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
+import { FlightRenderer, drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js?v=scene-20261126';
 
 const $ = id => document.getElementById(id);
 const format = (v, digits = 0) => v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -43,8 +43,8 @@ function updateMode() {
   $('fuel-readout').hidden = mono;
   $('offset').closest('.slider-row').hidden = !landing;
   $('mode-description').textContent = landing
-    ? catching ? 'Brake and align the rocket with the tower arms at 50 m clearance.'
-      : 'Land from 1 km clearance. Adjust the pitch and roll PID gains to control the rocket.'
+    ? catching ? 'Start tilted at 1 km. Brake and align with the tower arms at 50 m clearance.'
+      : 'Start at 1 km with 25° pitch. Tune pitch and roll PID gains to land on the pad.'
     : mono ? 'Climb from 2 m to the hover target. Control pitch and roll as propeller torque spins the body.'
       : 'Climb from 2 m to the target altitude. Hold position through pitch and roll disturbances.';
   $('mode-warning').textContent = mono
