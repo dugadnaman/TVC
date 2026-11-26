@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
   <title>Rocket flight simulator | Group A3</title>
-  <link rel="stylesheet" href="simulator.css">
+  <link rel="stylesheet" href="simulator.css?v=layout-20261126">
   <script type="module" src="simulator-app.js"></script>
 </head>
 <body>
@@ -57,6 +57,7 @@
     </div>
     <div class="export-status"><p>CSV contains main-flight telemetry. Restart clears the recording.</p><p id="export-status" role="status"></p></div>
 
+    <div class="dashboard-grid">
     <div class="control-stack">
     <section class="box pid-box">
       <h2>Pitch and roll PID</h2>
@@ -108,17 +109,7 @@
     </section>
 
 
-    <section class="box chart-box">
-      <h2>Attitude tracking</h2>
-      <h3>Pitch, °</h3>
-      <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
-      <h3>Roll, °</h3>
-      <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
-      <div class="legend"><span><i></i>Truth</span><span><i class="reference"></i>Reference</span><span><i class="estimate"></i>Sensor estimate</span></div>
-      <h3>Yaw, °</h3>
-      <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
-      <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
-    </section>
+    </div>
     </div>
 
     <section class="box actuator-box">
@@ -130,6 +121,26 @@
       <div class="slider-row"><label for="throttleLag">Thrust time constant</label><output id="throttleLag-output" for="throttleLag">180 ms</output><input id="throttleLag" type="range" min="0" max="1500" step="10" value="180"></div>
       <div class="slider-row"><label for="thrustDelay">Thrust command delay</label><output id="thrustDelay-output" for="thrustDelay">0 ms</output><input id="thrustDelay" type="range" min="0" max="1000" step="10" value="0"></div>
       <p class="small">This actuator model does not use measured servo or motor data. Milliseconds convert to simulation seconds. Changes restart the flight and clear best scores, tuning traces and batch results.</p>
+    </section>
+
+    <section class="box chart-box">
+      <h2>Attitude tracking</h2>
+      <div class="chart-series">
+        <div>
+          <h3>Pitch, °</h3>
+          <canvas id="pitch-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated pitch over simulation time"></canvas>
+        </div>
+        <div>
+          <h3>Roll, °</h3>
+          <canvas id="roll-chart" height="140" role="img" aria-label="True, commanded and sensor-estimated roll over simulation time"></canvas>
+        </div>
+        <div>
+          <h3>Yaw, °</h3>
+          <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
+        </div>
+      </div>
+      <div class="legend"><span><i></i>Truth</span><span><i class="reference"></i>Reference</span><span><i class="estimate"></i>Sensor estimate</span></div>
+      <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
     </section>
 
     <details class="box batch-box">
