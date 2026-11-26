@@ -15,7 +15,7 @@
 * { box-sizing: border-box; }
 body { margin: 0; font-size: 14px; line-height: 1.45; }
 .workspace { max-width: 1680px; padding: 16px 20px 24px; margin: auto; display: grid; grid-template-columns: minmax(340px, .78fr) minmax(0, 1.45fr); gap: 20px; align-items: start; }
-.scene-column { min-width: 0; height: calc(100dvh - 32px); display: flex; flex-direction: column; }
+.scene-column { min-width: 0; position: sticky; top: 16px; height: calc(100dvh - 32px); display: flex; flex-direction: column; }
 .scene { position: relative; flex: 1; min-height: 240px; border-radius: 5px; overflow: hidden; background: var(--sky-top); }
 .scene canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
 .scene canvas:active { cursor: grabbing; }
@@ -122,7 +122,7 @@ noscript { display: block; padding: 20px; }
 }
 @media (max-width: 900px) {
   .workspace { grid-template-columns: 1fr; max-width: 780px; padding: 14px 16px 24px; gap: 22px; }
-  .scene-column { height: auto; }
+  .scene-column { position: static; height: auto; }
   .scene { flex: none; height: min(65dvh, 620px); min-height: 320px; }
   .camera-controls > span { flex-basis: auto; order: 0; }
   .readouts b { font-size: 23px; }
