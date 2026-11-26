@@ -121,8 +121,8 @@
     </section>
     </div>
 
-    <details class="box actuator-box">
-      <summary>Adjust actuator limits and response</summary>
+    <section class="box actuator-box">
+      <h2>Actuator limits and response</h2>
       <div class="slider-row" id="rocket-thrust-row"><label for="maxThrust">Rocket maximum thrust</label><output id="maxThrust-output" for="maxThrust">1,200 N</output><input id="maxThrust" type="range" min="100" max="4000" step="25" value="1200"></div>
       <div class="slider-row" id="mono-thrust-row" hidden><label for="monoMaxThrust">Propeller maximum thrust</label><output id="monoMaxThrust-output" for="monoMaxThrust">45 N</output><input id="monoMaxThrust" type="range" min="5" max="200" step="1" value="45"></div>
       <div class="slider-row"><label for="gimbalLimitDeg">Maximum gimbal angle</label><output id="gimbalLimitDeg-output" for="gimbalLimitDeg">12°</output><input id="gimbalLimitDeg" type="range" min="1" max="30" step="1" value="12"></div>
@@ -130,7 +130,7 @@
       <div class="slider-row"><label for="throttleLag">Thrust time constant</label><output id="throttleLag-output" for="throttleLag">180 ms</output><input id="throttleLag" type="range" min="0" max="1500" step="10" value="180"></div>
       <div class="slider-row"><label for="thrustDelay">Thrust command delay</label><output id="thrustDelay-output" for="thrustDelay">0 ms</output><input id="thrustDelay" type="range" min="0" max="1000" step="10" value="0"></div>
       <p class="small">This actuator model does not use measured servo or motor data. Milliseconds convert to simulation seconds. Changes restart the flight and clear best scores, tuning traces and batch results.</p>
-    </details>
+    </section>
 
     <details class="box batch-box">
       <summary>Run repeatable scenario validation</summary>

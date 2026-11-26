@@ -43,12 +43,14 @@ body { margin: 0; font-size: 14px; line-height: 1.45; }
 .readouts div { font-size: 12px; line-height: 1.35; color: var(--muted); overflow-wrap: normal; }
 .readouts b { display: block; color: var(--ink); font-size: clamp(19px, 1.7vw, 25px); line-height: 1.15; font-weight: 600; margin-bottom: 3px; }
 .caption { font-size: 12px; color: var(--muted); margin: 12px 0 0; flex-shrink: 0; }
-.panel { display: grid; gap: 12px; min-width: 0; align-items: start; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "head head" "buttons buttons" "export export" "scores scores" "pid scenario" "close charts" "actuators batch" "feedback feedback" "sensors sensors" "diagram diagram" "platform platform"; }
+.panel { display: grid; gap: 16px; min-width: 0; align-items: start; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "head head" "buttons buttons" "export export" "scores scores" "pid scenario" "close charts" "actuators actuators" "batch batch" "feedback feedback" "sensors sensors" "diagram diagram" "platform platform"; }
 .panel header { grid-area: head; } .controls { grid-area: buttons; } .scores { grid-area: scores; }
 .pid-box { grid-area: pid; }
 .close-box { grid-area: close; } .chart-box { grid-area: charts; }
 .scenario-box { grid-area: scenario; } .diagram-box { grid-area: diagram; }
 .actuator-box { grid-area: actuators; } .batch-box { grid-area: batch; } .sensor-box { grid-area: sensors; }
+.actuator-box { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 24px; }
+.actuator-box > h2, .actuator-box > p { grid-column: 1 / -1; }
 .control-stack, .scenario-stack { display: contents; }
 .feedback-status { grid-area: feedback; margin: 0; padding: 3px 0; font-size: 12px; color: var(--muted); }
 .feedback-status strong { font-weight: 500; }
@@ -143,9 +145,12 @@ noscript { display: block; padding: 20px; }
   .scene { min-height: 140px; }
 }
 @media (min-width: 581px) {
-  .panel { grid-template-areas: "head head" "buttons buttons" "export export" "scores scores" "primary secondary" "actuators batch" "feedback feedback" "sensors sensors" "diagram diagram" "platform platform"; }
+  .panel { grid-template-areas: "head head" "buttons buttons" "export export" "scores scores" "primary secondary" "actuators actuators" "batch batch" "feedback feedback" "sensors sensors" "diagram diagram" "platform platform"; }
   .control-stack, .scenario-stack { display: grid; gap: 12px; min-width: 0; align-self: start; }
   .control-stack { grid-area: primary; }
   .scenario-stack { grid-area: secondary; }
   .control-stack > .box, .scenario-stack > .box { grid-area: auto; }
+}
+@media (max-width: 580px) {
+  .actuator-box { grid-template-columns: 1fr; }
 }
