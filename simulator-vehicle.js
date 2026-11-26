@@ -8,10 +8,75 @@ export function createVehicle(kind) {
   const textures = new Set();
   const geometry = value => { geometries.add(value); return value; };
   const material = value => { materials.add(value); return value; };
-  const metal = material(new THREE.MeshStandardMaterial({color: 0xc5ccd0, metalness: .82, roughness: .32}));
-  const dark = material(new THREE.MeshStandardMaterial({color: 0x242b30, metalness: .75, roughness: .4}));
-  const orange = material(new THREE.MeshStandardMaterial({color: 0xe56e24, metalness: .28, roughness: .43}));
-  const rubber = material(new THREE.MeshStandardMaterial({color: 0x14191c, roughness: .9}));
+  // These fixed, seeded surface maps are generated once, never in update().
+  const hash = (x, y, seed) => {
+    let value = Math.imul(x + seed, 374761393) ^ Math.imul(y + seed, 668265263);
+    value = Math.imul(value ^ (value >>> 13), 1274126177);
+    return ((value ^ (value >>> 16)) >>> 0) / 4294967295;
+  };
+  const surface = finish => {
+    const width = 512;
+    const height = 1024;
+    const color = new Uint8Array(width * height * 4);
+    const roughness = new Uint8Array(color.length);
+    const relief = new Uint8Array(color.length);
+    for (let y = 0; y < height; y++) {
+      const brush = hash(0, y, 19) - .5;
+      const heat = .5 + .5 * Math.sin(y / height * Math.PI * 1.6);
+      for (let x = 0; x < width; x++) {
+        const offset = (y * width + x) * 4;
+        const grain = hash(x, y, 37) - .5;
+        const scratchStart = hash(x, 0, 73) * height;
+        const scratched = hash(x, 0, 51) > .982 && y > scratchStart && y < scratchStart + 18 + hash(x, 0, 97) * 95;
+        let r = 188 + brush * 8 + grain * 3;
+        let g = 195 + brush * 8 + grain * 3;
+        let b = 198 + brush * 8 + grain * 3;
+        let rough = 143 + brush * 25 + grain * 8;
+        let bump = 128 + brush * 10 + grain * 4;
+        if (finish === 'paint') {
+          r = 190 + grain * 4;
+          g = 79 + grain * 3;
+          b = 29 + grain * 2;
+          rough = 187 + grain * 14;
+          const edge = y < 8 || y > height - 9;
+          if ((edge && hash(x, y >> 2, 113) > .74) || (scratched && hash(x, y, 127) > .66)) {
+            r = 137; g = 144; b = 146; rough = 156;
+          }
+        } else if (finish === 'heat') {
+          // Muted oxide/tarnish, not a bright decorative heat rainbow.
+          r = 79 + heat * 30 + brush * 5 + grain * 4;
+          g = 75 + heat * 17 + brush * 5 + grain * 4;
+          b = 74 + (1 - heat) * 18 + brush * 5 + grain * 4;
+          rough = 172 + heat * 26 + grain * 12;
+        }
+        if (scratched) {
+          r += 10; g += 10; b += 10; rough += 18; bump -= 12;
+        }
+        color[offset] = r; color[offset + 1] = g; color[offset + 2] = b; color[offset + 3] = 255;
+        roughness[offset] = roughness[offset + 1] = roughness[offset + 2] = rough;
+        relief[offset] = relief[offset + 1] = relief[offset + 2] = bump;
+        roughness[offset + 3] = relief[offset + 3] = 255;
+      }
+    }
+    const texture = (data, srgb = false) => {
+      const value = new THREE.DataTexture(data, width, height, THREE.RGBAFormat);
+      value.wrapS = value.wrapT = THREE.RepeatWrapping;
+      value.magFilter = THREE.LinearFilter;
+      value.minFilter = THREE.LinearMipmapLinearFilter;
+      value.generateMipmaps = true;
+      if (srgb) value.colorSpace = THREE.SRGBColorSpace;
+      value.needsUpdate = true;
+      textures.add(value);
+      return value;
+    };
+    return {map: texture(color, true), roughnessMap: texture(roughness), bumpMap: texture(relief)};
+  };
+  const brushed = surface('metal');
+  const metal = material(new THREE.MeshStandardMaterial({...brushed, metalness: .78, roughness: .88, bumpScale: .0005}));
+  const dark = material(new THREE.MeshStandardMaterial({...brushed, color: 0x41474b, metalness: .72, roughness: 1, bumpScale: .0003}));
+  const orange = material(new THREE.MeshStandardMaterial({...surface('paint'), metalness: .08, roughness: .9, bumpScale: .0002}));
+  const rubber = material(new THREE.MeshStandardMaterial({color: 0x202326, roughness: .93}));
+  const machined = material(new THREE.MeshStandardMaterial({...brushed, color: 0xd1d6d8, metalness: .88, roughness: .68, bumpScale: .00025}));
   const add = (geo, mat, parent = group) => {
     const mesh = new THREE.Mesh(geo, mat);
     mesh.castShadow = true;
@@ -52,10 +117,23 @@ export function createVehicle(kind) {
     const leg = new THREE.Group();
     leg.rotation.z = Math.PI / 4 + i * Math.PI / 2;
     legs.add(leg);
-    strut([.18, 0, -.30], [1, 0, -1], .021, metal, leg);
-    strut([.16, 0, -.73], [1, 0, -1], .012, dark, leg);
-    const foot = add(geometry(new THREE.BoxGeometry(.25, .18, .045)), rubber, leg);
-    foot.position.set(1, 0, -.9775);
+    strut([.18, 0, -.30], [.91, 0, -.925], .015, metal, leg);
+    strut([.16, 0, -.73], [.94, 0, -.94], .009, dark, leg);
+    // Sliding damper sleeve, exposed piston and a small clevis at the pad.
+    strut([.61, 0, -.665], [.85, 0, -.874], .023, dark, leg);
+    strut([.85, 0, -.874], [1, 0, -.964], .010, machined, leg);
+    for (const side of [-1, 1]) {
+      strut([.91, side * .024, -.925], [1, side * .024, -.967], .009, metal, leg);
+    }
+    const hinge = add(geometry(new THREE.CylinderGeometry(.022, .022, .075, 16)), dark, leg);
+    hinge.position.set(1, 0, -.961);
+    // The sole still ends at unit depth -1; the contact centre stays (1, 0).
+    const foot = cylinder(.094, .104, .028, metal, -.98, leg, 40);
+    foot.position.x = 1;
+    const sole = cylinder(.101, .101, .006, rubber, -.997, leg, 40);
+    sole.position.x = 1;
+    const hub = cylinder(.037, .042, .015, machined, -.9585, leg, 24);
+    hub.position.x = 1;
     legAssemblies.push(leg);
   }
 
@@ -102,48 +180,61 @@ export function createVehicle(kind) {
     nose.rotation.x = Math.PI / 2;
     nose.position.z = 1.075;
     cylinder(.151, .151, .16, orange, .73);
-    cylinder(.145, .13, .16, dark, -1.42);
-    for (const z of [-1.28, -.78, .28, .63, .83, 1.075]) ring(.1505, .003, z);
-    const rivetGeometry = geometry(new THREE.SphereGeometry(.0045, 6, 4));
-    const rivets = new THREE.InstancedMesh(rivetGeometry, dark, 96);
-    const transform = new THREE.Object3D();
-    let index = 0;
-    for (const z of [-1.28, -.78, .28, 1.075]) {
-      for (let i = 0; i < 24; i++) {
-        const angle = i * Math.PI / 12;
-        transform.position.set(.151 * Math.cos(angle), .151 * Math.sin(angle), z);
-        transform.updateMatrix();
-        rivets.setMatrixAt(index++, transform.matrix);
-      }
-    }
-    rivets.castShadow = true; rivets.receiveShadow = true;
-    group.add(rivets);
+    const heatMetal = material(new THREE.MeshStandardMaterial({...surface('heat'), metalness: .76, roughness: .94, bumpScale: .00065, side: THREE.DoubleSide}));
+    cylinder(.145, .13, .16, heatMetal, -1.42);
+    const weld = material(new THREE.MeshStandardMaterial({color: 0x9ba5a8, metalness: .82, roughness: .57}));
+    for (const z of [-1.28, -.78, .28, 1.075]) ring(.1501, .0008, z, weld);
+    for (const z of [.65, .81]) ring(.1506, .0005, z, orange);
+    const seam = cylinder(.00065, .00065, 2.4, weld, -.15, group, 6);
+    seam.position.x = -.15;
+    // Small flush service plate rather than rows of overscale tank rivets.
+    const panel = add(geometry(new THREE.CylinderGeometry(.1506, .1506, .16, 16, 1, true, -.24, .48)), dark);
+    panel.rotation.x = Math.PI / 2;
+    panel.position.z = -1.14;
     const canvas = document.createElement('canvas');
     canvas.width = 256; canvas.height = 512;
     const context = canvas.getContext('2d');
     context.clearRect(0, 0, 256, 512);
-    context.fillStyle = '#17232b';
+    context.fillStyle = '#394144';
     context.textAlign = 'center';
-    context.font = 'bold 150px sans-serif';
-    context.fillText('A3', 128, 285);
-    context.font = '22px sans-serif';
-    context.fillText('FLIGHT SYSTEMS', 128, 333);
+    context.font = '500 57px monospace';
+    context.fillText('A3', 128, 174);
+    context.fillRect(28, 196, 200, 2);
+    context.font = '16px monospace';
+    context.fillText('TEST VEHICLE', 128, 229);
+    context.font = '12px monospace';
+    context.fillText('PROPULSION SYSTEMS', 128, 255);
+    context.fillText('EXPERIMENTAL', 128, 278);
+    context.font = '11px monospace';
+    context.fillText('LIFT / SERVICE POINT', 128, 407);
+    context.fillRect(126, 425, 4, 34);
+    context.beginPath();
+    context.moveTo(128, 420); context.lineTo(118, 434); context.lineTo(138, 434);
+    context.closePath(); context.fill();
     const texture = new THREE.CanvasTexture(canvas);
     texture.colorSpace = THREE.SRGBColorSpace;
     textures.add(texture);
-    const labelMaterial = material(new THREE.MeshStandardMaterial({map: texture, transparent: true, roughness: .5, depthWrite: false, side: THREE.DoubleSide}));
+    const labelMaterial = material(new THREE.MeshStandardMaterial({map: texture, transparent: true, metalness: .05, roughness: .75, depthWrite: false}));
     for (const angle of [0, Math.PI]) {
-      const label = add(geometry(new THREE.CylinderGeometry(.1515, .1515, .53, 24, 1, true, angle - .65, 1.3)), labelMaterial);
+      const label = add(geometry(new THREE.CylinderGeometry(.1508, .1508, .53, 32, 1, true, angle - .65, 1.3)), labelMaterial);
       label.rotation.x = Math.PI / 2;
       label.position.z = -.03;
     }
     engine.position.z = -1.38;
     group.add(engine);
     const bellProfile = [new THREE.Vector2(.035, 0), new THREE.Vector2(.037, -.025), new THREE.Vector2(.043, -.055), new THREE.Vector2(.06, -.09), new THREE.Vector2(.093, -.12)];
-    const bell = add(geometry(new THREE.LatheGeometry(bellProfile, 48)), material(new THREE.MeshStandardMaterial({color: 0x515660, metalness: .88, roughness: .32, side: THREE.DoubleSide})), engine);
+    const bell = add(geometry(new THREE.LatheGeometry(bellProfile, 48)), heatMetal, engine);
     bell.rotation.x = Math.PI / 2;
     bell.position.z = -.2;
     cylinder(.031, .031, .045, dark, .005, engine);
+    cylinder(.041, .041, .065, machined, -.055, engine, 24);
+    cylinder(.055, .055, .008, dark, -.091, engine, 32);
+    for (let i = 0; i < 4; i++) {
+      const angle = i * Math.PI / 2;
+      const x = Math.cos(angle);
+      const y = Math.sin(angle);
+      strut([x * .049, y * .049, -.09], [x * .038, y * .038, -.2], .003, dark, engine);
+    }
   }
 
   const plume = new THREE.Group();

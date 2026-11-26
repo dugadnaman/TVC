@@ -1,0 +1,8 @@
+Rocky Terrain 02 by Poly Haven
+Source: https://polyhaven.com/a/rocky_terrain_02
+License: CC0 1.0 Universal, public domain
+License information: https://polyhaven.com/license
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Hosted locally at 1K resolution, original JPEG diffuse, OpenGL normal and roughness maps.
+Metadata: https://api.polyhaven.com/files/rocky_terrain_02

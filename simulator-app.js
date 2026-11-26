@@ -1,7 +1,7 @@
 import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=scene-20261126';
 import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
 import { drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js?v=webgl-20261126';
-import { FlightRenderer } from './simulator-webgl.js?v=webgl-20261126';
+import { FlightRenderer } from './simulator-webgl.js?v=materials-path-20261126';
 
 const $ = id => document.getElementById(id);
 const format = (v, digits = 0) => v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -112,11 +112,31 @@ $('controllerFeedback').addEventListener('change', () => {
 $('gnssEnabled').addEventListener('change', () => {
   config.gnssEnabled = $('gnssEnabled').value === 'true'; scenarioChanged();
 });
-$('camera').addEventListener('change', () => {
-  renderer.setCamera($('camera').value);
-  $('view-zoom').disabled = $('camera').value === 'overview';
-});
+$('camera').addEventListener('change', () => renderer.setCamera($('camera').value));
 $('view-zoom').addEventListener('input', () => { renderer.zoom = Number($('view-zoom').value); });
+$('path-camera').addEventListener('change', () => renderer.setPathCamera($('path-camera').value));
+const flightControls = $('run').parentElement;
+const controlsHome = flightControls.parentElement, controlsNext = flightControls.nextSibling;
+let pathShown = false, homeScroll = 0;
+function updateView() {
+  const showPath = location.hash === '#flight-path';
+  if (showPath === pathShown) return;
+  if (showPath) homeScroll = scrollY;
+  pathShown = showPath;
+  $('workspace').hidden = showPath;
+  $('flight-path-screen').hidden = !showPath;
+  renderer.pathActive = showPath;
+  if (showPath) {
+    $('path-controls').append(flightControls);
+    scrollTo(0, 0);
+    $('path-title').focus({ preventScroll: true });
+  } else {
+    controlsHome.insertBefore(flightControls, controlsNext);
+    scrollTo(0, homeScroll);
+    $('open-flight-path').focus({ preventScroll: true });
+  }
+}
+addEventListener('hashchange', updateView);
 $('run').addEventListener('click', () => {
   if (search || batch || state.done) return;
   running = !running; accumulator = 0; $('run').textContent = running ? 'Pause' : 'Resume';
@@ -290,6 +310,7 @@ function render() {
   $('mass').textContent = format(mass, 1); $('thrust').textContent = format(state.thrust);
   $('fuel').textContent = format(state.fuel, 1); $('clock').textContent = `T+${format(state.t, 1).padStart(4, '0')} s`;
   $('phase').textContent = search ? 'Auto-tuning' : batch ? 'Batch running; flight paused' : state.phase.charAt(0).toUpperCase() + state.phase.slice(1).toLowerCase();
+  $('path-status').textContent = `${$('scene-mode').textContent} · ${$('clock').textContent} · ${$('phase').textContent}`;
   $('gimbal').textContent = `gimbal ${format(state.gimbal[0] / RAD, 1)}° / ${format(state.gimbal[1] / RAD, 1)}°`;
   $('throttle').textContent = `throttle ${format(state.thrust / state.vehicle.maxThrust * 100)}%`;
   const d = diagnostics(state, config), distance = value => Number.isFinite(value) ? `${format(value, 1)} m` : value === Infinity ? '∞ · no braking authority' : value === -Infinity ? '−∞ · cannot stop' : '—';
@@ -345,4 +366,4 @@ function frame(timestamp) {
   render(); requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => { previousTime = null; accumulator = 0; });
-updateOutputs(); updateMode(); reset({ play: running }); requestAnimationFrame(frame);
+updateOutputs(); updateMode(); reset({ play: running }); updateView(); requestAnimationFrame(frame);

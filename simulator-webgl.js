@@ -1,17 +1,16 @@
 import * as THREE from './vendor/three.module.js';
 import { FlightRenderer as TrajectoryRenderer } from './simulator-renderer.js?v=webgl-20261126';
-import { createVehicle } from './simulator-vehicle.js';
-import { createWorld } from './simulator-world.js';
+import { createVehicle } from './simulator-vehicle.js?v=materials-path-20261126';
+import { createWorld } from './simulator-world.js?v=materials-path-20261126';
 
-// The main model stays at physical scale. Only the trajectory inset magnifies it.
+// The model stays at physical scale. The separate path view magnifies flight symbols.
 export class FlightRenderer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.container = canvas.parentElement;
     this.overview = new TrajectoryRenderer(document.getElementById('trajectory'));
     this.overview.setCamera('front');
-    this.view = 'perspective';
-    this.azimuth = .8; this.elevation = .28; this.zoom = 1;
+    this.pathActive = false;
+    this.azimuth = -2.35; this.elevation = .22; this.zoom = 1;
     this.target = new THREE.Vector3();
     this.offset = new THREE.Vector3();
     this.camera = new THREE.PerspectiveCamera(38, 1, .03, 30000);
@@ -29,7 +28,7 @@ export class FlightRenderer {
       this.world = createWorld(this.renderer);
     } catch (error) {
       this.unavailable = true;
-      document.getElementById('graphics-status').textContent = 'WebGL is unavailable. Showing the trajectory view.';
+      document.getElementById('graphics-status').textContent = 'WebGL is unavailable. Open Flight path to view the simulation.';
       console.error('WebGL initialization failed', error);
     }
     let drag = null;
@@ -47,22 +46,23 @@ export class FlightRenderer {
     canvas.addEventListener('pointercancel',release);
     canvas.addEventListener('webglcontextlost', e => {
       e.preventDefault(); this.unavailable = true;
-      document.getElementById('graphics-status').textContent = 'Graphics context lost. Showing trajectory until graphics recover.';
+      document.getElementById('graphics-status').textContent = 'Graphics context lost. Flight path remains available.';
     });
     canvas.addEventListener('webglcontextrestored', () => {
       this.unavailable = false; document.getElementById('graphics-status').textContent = '';
     });
   }
   setCamera(name) {
-    this.view = name;
-    const views = { perspective:[.8,.28],front:[-Math.PI/2,.08],side:[0,.08],top:[0,1.5] };
+    const views = { perspective:[-2.35,.22],front:[-Math.PI/2,.08],side:[0,.08],top:[0,1.5] };
     if (views[name]) [this.azimuth,this.elevation] = views[name];
   }
+  setPathCamera(name) { this.overview.setCamera(name); }
   draw(state, config, ghosts, trails, palette, searching) {
-    const overviewOnly = this.view === 'overview' || this.unavailable;
-    this.container.dataset.view = overviewOnly ? 'overview' : 'follow';
-    this.overview.draw(state,config,ghosts,trails,palette,searching);
-    if (overviewOnly) return;
+    if (this.pathActive) {
+      this.overview.draw(state,config,ghosts,trails,palette,searching);
+      return;
+    }
+    if (this.unavailable) return;
     const w=this.canvas.clientWidth,h=this.canvas.clientHeight;
     if (!w || !h) return;
     if (w!==this.width || h!==this.height) {

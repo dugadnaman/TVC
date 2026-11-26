@@ -4,9 +4,11 @@ import * as THREE from './vendor/three.module.js';
 export function createWorld(renderer) {
   const scene = new THREE.Scene();
   scene.up.set(0, 0, 1);
-  scene.fog = new THREE.FogExp2(0xb9cbd3, 0.000115);
+  scene.fog = new THREE.FogExp2(0xc6cdd0, 0.000105);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1;
   let seed = 912773;
   const random = () => {
     seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
@@ -27,11 +29,35 @@ export function createWorld(renderer) {
     return map;
   };
 
-  const groundImage = canvas(512, 512);
-  const groundContext = groundImage.getContext('2d');
+  // Poly Haven rocky_terrain_02 (CC0): one photographed tile covers 4 × 4 metres.
+  const terrainSize = 11000;
+  const terrainRepeat = terrainSize / 4;
+  const textureLoader = new THREE.TextureLoader();
+  const failedTextures = new Set();
+  const terrainTexture = (path, color = false) => {
+    const map = textureLoader.load(new URL(path, import.meta.url).href, undefined, undefined, (error) => {
+      failedTextures.add(path);
+      document.getElementById('graphics-status').textContent =
+        `Terrain texture loading failed: ${[...failedTextures].join(', ')}. Check the locally hosted terrain assets.`;
+      console.error(`Unable to load terrain texture ${path}`, error);
+    });
+    map.wrapS = map.wrapT = THREE.RepeatWrapping;
+    map.repeat.set(terrainRepeat, terrainRepeat);
+    map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    if (color) map.colorSpace = THREE.SRGBColorSpace;
+    return map;
+  };
+  const groundMaterial = new THREE.MeshStandardMaterial({
+    map: terrainTexture('./assets/terrain-color.jpg', true),
+    normalMap: terrainTexture('./assets/terrain-normal.jpg'),
+    roughnessMap: terrainTexture('./assets/terrain-roughness.jpg'),
+    normalScale: new THREE.Vector2(0.38, 0.38),
+    roughness: 1, vertexColors: true,
+  });
+
+  // This generated relief is only for fine concrete weathering on the landing pad.
   const bumpImage = canvas(512, 512);
   const bumpContext = bumpImage.getContext('2d');
-  const groundPixels = groundContext.createImageData(512, 512);
   const bumpPixels = bumpContext.createImageData(512, 512);
   for (let y = 0; y < 512; y++) {
     for (let x = 0; x < 512; x++) {
@@ -39,36 +65,58 @@ export function createWorld(renderer) {
       const grain = random();
       const patch = Math.sin(x * 0.049 + Math.sin(y * 0.024) * 3)
         * Math.sin(y * 0.037 + Math.cos(x * 0.017) * 2);
-      groundPixels.data[i] = 117 + grain * 23 + patch * 13;
-      groundPixels.data[i + 1] = 121 + grain * 24 + patch * 18;
-      groundPixels.data[i + 2] = 94 + grain * 17 + patch * 10;
-      groundPixels.data[i + 3] = 255;
+      // Keep the same random sequence for the existing pad and scenery.
       const relief = 80 + grain * 110 + patch * 20;
       bumpPixels.data[i] = bumpPixels.data[i + 1] = bumpPixels.data[i + 2] = relief;
       bumpPixels.data[i + 3] = 255;
     }
   }
-  groundContext.putImageData(groundPixels, 0, 0);
   bumpContext.putImageData(bumpPixels, 0, 0);
-  const groundMaterial = new THREE.MeshStandardMaterial({
-    map: texture(groundImage, 240), bumpMap: texture(bumpImage, 240, false),
-    bumpScale: 0.15, roughness: 0.98, color: 0xc6c5a6,
-  });
-  const terrainGeometry = new THREE.PlaneGeometry(11000, 11000, 144, 144);
+  // Smooth, non-periodic landforms and kilometre-scale mineral/soil colour patches.
+  const lattice = (x, y) => {
+    let hash = Math.imul(x, 374761393) ^ Math.imul(y, 668265263) ^ 912773;
+    hash = Math.imul(hash ^ (hash >>> 13), 1274126177);
+    return ((hash ^ (hash >>> 16)) >>> 0) / 4294967295;
+  };
+  const landNoise = (x, y) => {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+    const a = lattice(ix, iy), b = lattice(ix + 1, iy);
+    const c = lattice(ix, iy + 1), d = lattice(ix + 1, iy + 1);
+    return (a + (b - a) * sx) * (1 - sy) + (c + (d - c) * sx) * sy;
+  };
+  const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 144, 144);
   const positions = terrainGeometry.attributes.position;
   for (let i = 0; i < positions.count; i++) {
     const x = positions.getX(i), y = positions.getY(i);
     const distance = Math.hypot(x, y);
     // A cell's diagonal must also stay outside the 300 m level safety apron.
-    const blend = Math.min(1, Math.max(0, (distance - 410) / 950));
-    const rolling = 140 + 100 * Math.sin(x * 0.0018 + y * 0.0007)
-      + 74 * Math.cos(y * 0.0026 - x * 0.0005)
-      + 42 * Math.sin(x * 0.0052) * Math.cos(y * 0.0041);
-    const ridge = 190 * Math.exp(-(((distance - 3500) / 1100) ** 2))
-      * (0.6 + 0.4 * Math.sin(Math.atan2(y, x) * 7 + 0.6));
-    positions.setZ(i, -0.06 + blend * blend * (rolling + ridge));
+    const apron = Math.min(1, Math.max(0, (distance - 410) / 950));
+    const blend = apron * apron * (3 - 2 * apron);
+    const warp = landNoise(x * 0.00037 + 19, y * 0.00037 - 31) * 420;
+    const rolling = 45 + 230 * landNoise((x + warp) * 0.00053, (y - warp) * 0.00053)
+      + 115 * landNoise(x * 0.0012 + 37, y * 0.0012 + 11)
+      + 38 * landNoise(x * 0.0028 - 17, y * 0.0028 + 53);
+    positions.setZ(i, -0.06 + blend * rolling);
   }
   terrainGeometry.computeVertexNormals();
+  const colors = new Float32Array(positions.count * 3);
+  const normals = terrainGeometry.attributes.normal;
+  const drySoil = new THREE.Color(0xe0cfb6);
+  const paleRock = new THREE.Color(0xf2eee4);
+  const darkSoil = new THREE.Color(0xaaa59c);
+  const terrainColor = new THREE.Color();
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i), y = positions.getY(i);
+    const mineral = landNoise(x * 0.001 + 61, y * 0.001 - 23);
+    const soil = landNoise(x * 0.0023 - 43, y * 0.0023 + 79);
+    const exposure = Math.min(1, (1 - normals.getZ(i)) * 9);
+    terrainColor.copy(drySoil).lerp(paleRock, Math.min(1, mineral * 0.7 + exposure))
+      .lerp(darkSoil, soil * 0.58);
+    terrainColor.toArray(colors, i * 3);
+  }
+  terrainGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   const terrain = new THREE.Mesh(terrainGeometry, groundMaterial);
   terrain.receiveShadow = true;
   scene.add(terrain);
@@ -134,8 +182,8 @@ export function createWorld(renderer) {
   environmentGradient.addColorStop(0, '#608eba');
   environmentGradient.addColorStop(0.36, '#b0cbdc');
   environmentGradient.addColorStop(0.49, '#dfE6e6');
-  environmentGradient.addColorStop(0.52, '#9b9e89');
-  environmentGradient.addColorStop(1, '#66694f');
+  environmentGradient.addColorStop(0.52, '#a59c8e');
+  environmentGradient.addColorStop(1, '#746c62');
   environmentContext.fillStyle = environmentGradient;
   environmentContext.fillRect(0, 0, 512, 256);
   for (let i = 0; i < 40; i++) {
@@ -162,15 +210,15 @@ export function createWorld(renderer) {
   const environmentTarget = pmrem.fromEquirectangular(environmentTexture);
   scene.environment = environmentTarget.texture;
   scene.environmentRotation.x = Math.PI / 2;
-  scene.environmentIntensity = 0.65;
+  scene.environmentIntensity = 0.38;
   scene.userData.environmentTarget = environmentTarget;
   environmentTexture.dispose();
   pmrem.dispose();
 
-  const fill = new THREE.HemisphereLight(0xc9e1f2, 0x8d8871, 2.3);
+  const fill = new THREE.HemisphereLight(0xd9e5ef, 0x978574, 0.65);
   fill.position.set(0, 0, 1);
   scene.add(fill);
-  const sun = new THREE.DirectionalLight(0xfff3dc, 3.1);
+  const sun = new THREE.DirectionalLight(0xfff5e8, 3.4);
   sun.castShadow = true;
   const shadowSize = renderer.capabilities.maxTextureSize >= 2048 ? 2048 : 1024;
   sun.shadow.mapSize.set(shadowSize, shadowSize);
