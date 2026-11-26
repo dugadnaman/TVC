@@ -1,6 +1,7 @@
 import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=scene-20261126';
 import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
-import { FlightRenderer, drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js?v=scene-20261126';
+import { drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js?v=webgl-20261126';
+import { FlightRenderer } from './simulator-webgl.js?v=webgl-20261126';
 
 const $ = id => document.getElementById(id);
 const format = (v, digits = 0) => v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -111,7 +112,11 @@ $('controllerFeedback').addEventListener('change', () => {
 $('gnssEnabled').addEventListener('change', () => {
   config.gnssEnabled = $('gnssEnabled').value === 'true'; scenarioChanged();
 });
-$('camera').addEventListener('change', () => renderer.setCamera($('camera').value));
+$('camera').addEventListener('change', () => {
+  renderer.setCamera($('camera').value);
+  $('view-zoom').disabled = $('camera').value === 'overview';
+});
+$('view-zoom').addEventListener('input', () => { renderer.zoom = Number($('view-zoom').value); });
 $('run').addEventListener('click', () => {
   if (search || batch || state.done) return;
   running = !running; accumulator = 0; $('run').textContent = running ? 'Pause' : 'Resume';

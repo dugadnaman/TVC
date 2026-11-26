@@ -95,7 +95,7 @@ export class FlightRenderer {
       ctx.beginPath(); ctx.ellipse(target.x, target.y, 12, Math.max(3, 12 * se), 0, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
     }
     ctx.fillStyle = '#e3ebea'; ctx.font = '9px ui-monospace, monospace';
-    ctx.fillText(catching ? `CATCH / ${P.catchHeight} m clearance` : hover ? `HOLD / ${config.targetAltitude} m` : 'PAD / x = y = 0', target.x + 12, target.y - 7);
+    if (w >= 220) ctx.fillText(catching ? `CATCH / ${P.catchHeight} m clearance` : hover ? `HOLD / ${config.targetAltitude} m` : 'PAD / x = y = 0', target.x + 12, target.y - 7);
     ctx.strokeStyle = '#e4eceb66';
     const rulerHeight = hover ? Math.ceil(worldHeight / 10) * 10 : 1000;
     const interval = hover ? 10 : 200;
@@ -128,6 +128,7 @@ export class FlightRenderer {
     segment(ctx, project([state.x,state.y,0]), project([state.x,state.y,state.z])); ctx.setLineDash([]);
     put(state, 1, gain);
     // World-coordinate triad makes depth and camera rotation explicit.
+    if (w >= 220) {
     const origin = {x:32,y:h-48};
     for (const [axis, color, label] of [[[1,0,0], '#e9a17b', 'X'], [[0,1,0], '#9bd5ad', 'Y'], [[0,0,1], '#b4cce8', 'Z']]) {
       const zero = project([0,0,0]), p = project(axis);
@@ -136,12 +137,16 @@ export class FlightRenderer {
     }
     ctx.fillStyle = '#e5e9e9aa'; ctx.font = '8px ui-monospace, monospace';
     ctx.fillText(hover ? '3D ORTHOGRAPHIC / GEOMETRY ×1' : '3D ORTHOGRAPHIC / VEHICLE ×12', 70, h - 32);
+    } else {
+      ctx.fillStyle = '#e5e9e9'; ctx.font = '9px ui-monospace, monospace';
+      ctx.fillText('FLIGHT PATH', 8, 14);
+    }
     // Actual state off-screen, rather than a clamped or fabricated vehicle location.
     const point = project([state.x,state.y,state.z]);
     if (point.x < 0 || point.x > w || point.y < 0 || point.y > h) {
       ctx.fillStyle = '#f1d5b5'; ctx.fillText('VEHICLE OUTSIDE VIEW · use another camera', 14, 52);
     }
-    if (catching && (clearance(state) < 180 || state.done)) drawCatchInset(ctx, state, w, h, palette);
+    if (w >= 300 && catching && (clearance(state) < 180 || state.done)) drawCatchInset(ctx, state, w, h, palette);
   }
 }
 

@@ -5,21 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
   <title>Rocket flight simulator | Group A3</title>
-  <link rel="stylesheet" href="simulator.css?v=fixed-scene-20261126">
-  <script type="module" src="simulator-app.js?v=scene-20261126"></script>
+  <link rel="stylesheet" href="simulator.css?v=webgl-20261126">
+  <script type="module" src="simulator-app.js?v=webgl-20261126"></script>
 </head>
 <body>
 <main class="workspace">
   <div class="scene-column">
     <div class="scene">
-      <canvas id="scene" role="img" aria-label="Live 3D rigid-body flight, trajectory history and landing pad; drag to orbit the camera"></canvas>
+      <canvas id="scene" role="img" aria-label="WebGL close-follow view of the rocket at its actual attitude; drag to orbit"></canvas>
+      <canvas id="trajectory" role="img" aria-label="Full-flight trajectory overview with altitude scale; vehicle magnified for visibility"></canvas>
+      <p id="graphics-status" role="status"></p>
       <div class="scene-label"><span class="live-dot"></span><span id="scene-mode">Rocket landing</span><span id="clock">T+00.0 s</span></div>
       <div class="scene-footer"><span id="phase">Coasting</span><span id="scene-range">Initial clearance: 1 km</span></div>
       <div id="verdict" class="verdict" hidden aria-live="polite"></div>
     </div>
     <div class="camera-controls">
-      <label for="camera">Camera <select id="camera"><option value="perspective" selected>Perspective</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option></select></label>
-      <span>Drag scene to orbit</span>
+      <label for="camera">Camera <select id="camera"><option value="perspective" selected>Follow</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option><option value="overview">Trajectory</option></select></label>
+      <label for="view-zoom">Zoom <input id="view-zoom" type="range" min="0.6" max="1.5" step="0.1" value="1" aria-label="Follow camera zoom"></label>
+      <span>Drag to orbit. Follow view uses physical scale; the inset shows the full flight.</span>
       <button id="disturb" class="ghost">Disturb attitude</button>
     </div>
     <div class="readouts" aria-label="Actual simulated rigid-body telemetry, not controller estimates" aria-live="off">
