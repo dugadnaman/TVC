@@ -1,4 +1,4 @@
-import { P, RAD, rotate, attitude, clearance } from './simulator-physics.js?v=scene-20261126';
+import { P, rotate, clearance } from './simulator-physics.js?v=scene-20261126';
 
 // Orthographic 3D projection of the actual quaternion state, not a planar animation.
 const VIEWS = { perspective: [0.58, 0.35], front: [0, 0], side: [Math.PI / 2, 0], top: [0, Math.PI / 2] };
@@ -341,30 +341,6 @@ function drawVehicle(ctx, s, project, palette) {
       polygon(ctx,[{x:origin.x-dy/n*width,y:origin.y+dx/n*width},tip,{x:origin.x+dy/n*width,y:origin.y-dx/n*width}],flame);
     }
   }
-}
-export function drawCloseup(canvas, state, palette) {
-  const {ctx,w,h}=fit(canvas);ctx.clearRect(0,0,w,h);
-  const scale=Math.min(h/(state.vehicle.kind==='monocopter'?2.5:5.5),w/4);
-  const az=0.6, el=0.2;
-  const worldProject=p=>({x:w*.5+(p[0]*Math.cos(az)-p[1]*Math.sin(az))*scale,
-    y:h*.53-(p[2]*Math.cos(el)-(p[0]*Math.sin(az)+p[1]*Math.cos(az))*Math.sin(el))*scale,depth:p[0]*Math.sin(az)+p[1]*Math.cos(az)});
-  const project=point=>worldProject(rotate(state.q,point));
-  const roll=state.reference.roll,pitch=state.reference.pitch;
-  const target=[Math.sin(pitch)*Math.cos(roll),-Math.sin(roll),Math.cos(pitch)*Math.cos(roll)];
-  const axisLength=state.vehicle.kind==='monocopter'?0.8:1.9;
-  ctx.strokeStyle=palette.accent;ctx.setLineDash([3,4]);ctx.lineWidth=1;
-  segment(ctx,worldProject(target.map(v=>-v*axisLength)),worldProject(target.map(v=>v*axisLength)));ctx.setLineDash([]);
-  drawVehicle(ctx,state,project,palette);
-  const speed=Math.hypot(state.vx,state.vy,state.vz);
-  if(speed>0.05){
-    const origin={x:w-28,y:35},direction=worldProject([state.vx/speed,state.vy/speed,state.vz/speed]),zero=worldProject([0,0,0]);
-    const end={x:origin.x+(direction.x-zero.x)/scale*20,y:origin.y+(direction.y-zero.y)/scale*20};
-    ctx.strokeStyle=palette.ink;ctx.lineWidth=1;segment(ctx,origin,end);
-    const angle=Math.atan2(end.y-origin.y,end.x-origin.x);
-    polygon(ctx,[end,{x:end.x-5*Math.cos(angle-.5),y:end.y-5*Math.sin(angle-.5)},{x:end.x-5*Math.cos(angle+.5),y:end.y-5*Math.sin(angle+.5)}],palette.ink);
-  }
-  ctx.fillStyle=palette.muted;ctx.font='9px ui-monospace, monospace';ctx.fillText(state.phase.toUpperCase(),2,12);
-  const a=attitude(state);ctx.fillText(`tilt ${(a.tilt/RAD).toFixed(1)}°`,2,h-3);
 }
 export function drawSeries(canvas, history, time, fields, palette, {minimum=15, yaw=false, unit='°'}={}) {
   const {ctx,w,h}=fit(canvas);ctx.clearRect(0,0,w,h);

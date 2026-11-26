@@ -1,9 +1,9 @@
 import * as THREE from './vendor/three.module.js';
-import { FlightRenderer as TrajectoryRenderer } from './simulator-renderer.js?v=webgl-20261126';
+import { FlightRenderer as TrajectoryRenderer } from './simulator-renderer.js?v=paired-views-20261126';
 import { createVehicle } from './simulator-vehicle.js?v=materials-path-20261126';
 import { createWorld } from './simulator-world.js?v=materials-path-20261126';
 
-// The model stays at physical scale. The separate path view magnifies flight symbols.
+// Both views use the same flight state; only path symbols are magnified.
 export class FlightRenderer {
   constructor(canvas) {
     this.canvas = canvas;
@@ -58,10 +58,8 @@ export class FlightRenderer {
   }
   setPathCamera(name) { this.overview.setCamera(name); }
   draw(state, config, ghosts, trails, palette, searching) {
-    if (this.pathActive) {
-      this.overview.draw(state,config,ghosts,trails,palette,searching);
-      return;
-    }
+    this.overview.draw(state,config,ghosts,trails,palette,searching);
+    if (this.pathActive) return;
     if (this.unavailable) return;
     const w=this.canvas.clientWidth,h=this.canvas.clientHeight;
     if (!w || !h) return;

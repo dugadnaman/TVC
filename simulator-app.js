@@ -1,7 +1,7 @@
 import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=scene-20261126';
 import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
-import { drawCloseup, drawSeries, drawSearch } from './simulator-renderer.js?v=webgl-20261126';
-import { FlightRenderer } from './simulator-webgl.js?v=materials-path-20261126';
+import { drawSeries, drawSearch } from './simulator-renderer.js?v=paired-views-20261126';
+import { FlightRenderer } from './simulator-webgl.js?v=paired-views-20261126';
 
 const $ = id => document.getElementById(id);
 const format = (v, digits = 0) => v.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits });
@@ -114,7 +114,14 @@ $('gnssEnabled').addEventListener('change', () => {
 });
 $('camera').addEventListener('change', () => renderer.setCamera($('camera').value));
 $('view-zoom').addEventListener('input', () => { renderer.zoom = Number($('view-zoom').value); });
-$('path-camera').addEventListener('change', () => renderer.setPathCamera($('path-camera').value));
+for (const id of ['path-camera', 'expanded-path-camera']) {
+  $(id).addEventListener('change', () => {
+    const view = $(id).value;
+    renderer.setPathCamera(view);
+    $('path-camera').value = view;
+    $('expanded-path-camera').value = view;
+  });
+}
 const flightControls = $('run').parentElement;
 const controlsHome = flightControls.parentElement, controlsNext = flightControls.nextSibling;
 let pathShown = false, homeScroll = 0;
@@ -128,10 +135,12 @@ function updateView() {
   renderer.pathActive = showPath;
   if (showPath) {
     $('path-controls').append(flightControls);
+    $('expanded-path-stage').append($('trajectory'));
     scrollTo(0, 0);
     $('path-title').focus({ preventScroll: true });
   } else {
     controlsHome.insertBefore(flightControls, controlsNext);
+    $('path-home').prepend($('trajectory'));
     scrollTo(0, homeScroll);
     $('open-flight-path').focus({ preventScroll: true });
   }
@@ -295,7 +304,6 @@ function sample() {
 }
 function render() {
   renderer.draw(state, config, ghosts, trails, palette, Boolean(search));
-  drawCloseup($('closeup'), state, palette);
   drawSeries($('pitch-chart'), history, state.t, ['pitch', 'pitchReference', 'pitchEstimate'], palette);
   drawSeries($('roll-chart'), history, state.t, ['roll', 'rollReference', 'rollEstimate'], palette);
   drawSeries($('yaw-chart'), history, state.t, ['yaw'], palette, {minimum: 90, yaw: true});

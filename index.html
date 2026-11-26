@@ -5,25 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="description" content="Group A3's rocket flight simulator with shared pitch and roll PID, sensor feedback and tilt-prop stabilization.">
   <title>Rocket flight simulator | Group A3</title>
-  <link rel="stylesheet" href="simulator.css?v=materials-path-20261126">
-  <script type="module" src="simulator-app.js?v=materials-path-20261126"></script>
+  <link rel="stylesheet" href="simulator.css?v=paired-views-20261126">
+  <script type="module" src="simulator-app.js?v=paired-views-20261126"></script>
 </head>
 <body>
 <main class="workspace" id="workspace">
   <div class="scene-column">
-    <nav class="view-nav" aria-label="Simulation views"><span>Rocket view</span><a href="#flight-path" id="open-flight-path">Open flight path</a></nav>
-    <div class="scene">
-      <canvas id="scene" role="img" aria-label="WebGL close-follow view of the rocket at its actual attitude; drag to orbit"></canvas>
-      <p id="graphics-status" role="status"></p>
+    <nav class="view-nav" aria-label="Simulation views"><span>Flight path</span><a href="#flight-path" id="open-flight-path">Expand flight path</a></nav>
+    <div class="scene" id="path-home">
+      <canvas id="trajectory" role="img" aria-label="Live full-flight trajectory with altitude scale, position history and landing target; drag to orbit"></canvas>
       <div class="scene-label"><span class="live-dot"></span><span id="scene-mode">Rocket landing</span><span id="clock">T+00.0 s</span></div>
       <div class="scene-footer"><span id="phase">Coasting</span><span id="scene-range">Initial clearance: 1 km</span></div>
       <div id="verdict" class="verdict" hidden aria-live="polite"></div>
     </div>
     <div class="camera-controls">
-      <label for="camera">Camera <select id="camera"><option value="perspective" selected>Follow</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option></select></label>
-      <label for="view-zoom">Zoom <input id="view-zoom" type="range" min="0.6" max="1.5" step="0.1" value="1" aria-label="Follow camera zoom"></label>
-      <span>Drag to orbit. The flight path opens in a separate full-window view.</span>
-      <button id="disturb" class="ghost">Disturb attitude</button>
+      <label for="path-camera">Path view <select id="path-camera"><option value="front">Front</option><option value="perspective">Oblique</option><option value="side">Side</option><option value="top">Top</option></select></label>
+      <span>Drag to orbit the flight path.</span>
     </div>
     <div class="readouts" aria-label="Actual simulated rigid-body telemetry, not controller estimates" aria-live="off">
       <div><b id="altitude">1,000</b>Clearance, m</div>
@@ -73,8 +70,16 @@
     </section>
     <section class="box close-box">
       <h2>Vehicle and diagnostics</h2>
-      <canvas id="closeup" height="190" role="img" aria-label="3D vehicle attitude, geometry, thrust-vector gimbal and velocity direction"></canvas>
-      <div class="legend"><span><i class="reference"></i>Target axis</span><span><i></i>Velocity</span></div>
+      <div class="vehicle-scene">
+        <canvas id="scene" role="img" aria-label="WebGL close-follow view of the rocket at its actual attitude; drag to orbit"></canvas>
+        <p id="graphics-status" role="status"></p>
+      </div>
+      <div class="camera-controls">
+        <label for="camera">Camera <select id="camera"><option value="perspective" selected>Follow</option><option value="front">Front</option><option value="side">Side</option><option value="top">Top</option></select></label>
+        <label for="view-zoom">Zoom <input id="view-zoom" type="range" min="0.6" max="1.5" step="0.1" value="1" aria-label="Follow camera zoom"></label>
+        <button id="disturb" class="ghost">Disturb attitude</button>
+        <span>Drag to orbit the rocket. Both views show the same live flight.</span>
+      </div>
       <div class="close-meta"><span id="gimbal">Gimbal: 0.0° / 0.0°</span><span id="throttle">Throttle: 0%</span><span id="twr">T/W: 0.00</span></div>
       <dl class="diagnostics" aria-label="Actual rigid-body flight diagnostics, independent of selected controller feedback">
         <div><dt>Current T/W</dt><dd id="current-twr">0.00</dd></div>
@@ -215,13 +220,13 @@
 <section id="flight-path-screen" class="flight-path-screen" hidden aria-labelledby="path-title">
   <header class="path-header">
     <div><h1 id="path-title" tabindex="-1">Flight path</h1><p id="path-status"></p></div>
-    <a href="#" id="close-flight-path">Back to rocket view</a>
+    <a href="#" id="close-flight-path">Back to simulator</a>
   </header>
   <div class="path-toolbar">
     <div id="path-controls"></div>
-    <label for="path-camera">View <select id="path-camera"><option value="front">Front</option><option value="perspective">Oblique</option><option value="side">Side</option><option value="top">Top</option></select></label>
+    <label for="expanded-path-camera">View <select id="expanded-path-camera"><option value="front">Front</option><option value="perspective">Oblique</option><option value="side">Side</option><option value="top">Top</option></select></label>
   </div>
-  <div class="path-stage"><canvas id="trajectory" role="img" aria-label="Live full-flight trajectory with altitude scale, position history and landing target; drag to orbit"></canvas></div>
+  <div class="path-stage" id="expanded-path-stage"></div>
   <p class="path-caption">Live flight history. Rocket symbols are enlarged for visibility. Switching views does not restart the flight.</p>
 </section>
 <noscript>This interactive simulation requires JavaScript. It is an educational 3D rigid-body model, not flight software.</noscript>
