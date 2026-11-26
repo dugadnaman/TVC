@@ -1,4 +1,4 @@
-import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=scene-20261126';
+import { RAD, DT, DEFAULTS, SENSOR_MODEL, clamp, clearance, attitude, newState, step, score, createSearch, diagnostics, evaluate } from './simulator-physics.js?v=horizontal-20261126';
 import { scenarioDefinitions, summarizeBatch, telemetrySample, telemetryCSV } from './simulator-engineering.js?v=scene-20261126';
 import { drawSeries, drawSearch } from './simulator-renderer.js?v=paired-views-20261126';
 import { FlightRenderer } from './simulator-webgl.js?v=paired-views-20261126';
@@ -45,7 +45,7 @@ function updateMode() {
   $('offset').closest('.slider-row').hidden = !landing;
   $('mode-description').textContent = landing
     ? catching ? 'Start tilted at 1 km. Brake and align with the tower arms at 50 m clearance.'
-      : 'Start at 1 km with 25° pitch. Tune pitch and roll PID gains to land on the pad.'
+      : 'Start nearly horizontal at 1 km with 85° pitch. Tune pitch and roll PID gains to land on the pad.'
     : mono ? 'Climb from 2 m to the hover target. Control pitch and roll as propeller torque spins the body.'
       : 'Climb from 2 m to the target altitude. Hold position through pitch and roll disturbances.';
   $('mode-warning').textContent = mono

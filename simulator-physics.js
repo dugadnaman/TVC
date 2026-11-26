@@ -109,7 +109,7 @@ export function newState(config = DEFAULTS) {
     throw new RangeError('controllerFeedback must be sensors or truth');
   }
   const landing = c.mode === 'landing' || c.mode === 'catch';
-  const roll = c.initialRollDeg * RAD, pitch = (c.initialPitchDeg ?? (landing ? 25 : 8)) * RAD;
+  const roll = c.initialRollDeg * RAD, pitch = (c.initialPitchDeg ?? (landing ? 85 : 8)) * RAD;
   const cr = Math.cos(roll / 2), sr = Math.sin(roll / 2);
   const cp = Math.cos(pitch / 2), sp = Math.sin(pitch / 2);
   const cy = Math.cos(c.initialYawDeg * RAD / 2), sy = Math.sin(c.initialYawDeg * RAD / 2);
