@@ -49,6 +49,7 @@ body { margin: 0; font-size: 14px; line-height: 1.45; }
 .close-box { grid-area: close; } .chart-box { grid-area: charts; }
 .scenario-box { grid-area: scenario; } .diagram-box { grid-area: diagram; }
 .actuator-box { grid-area: actuators; } .batch-box { grid-area: batch; } .sensor-box { grid-area: sensors; }
+.control-stack, .scenario-stack { display: contents; }
 .feedback-status { grid-area: feedback; margin: 0; padding: 3px 0; font-size: 12px; color: var(--muted); }
 .feedback-status strong { font-weight: 500; }
 .export-status { grid-area: export; color: var(--muted); font-size: 12px; margin: -5px 0 0; }
@@ -140,4 +141,11 @@ noscript { display: block; padding: 20px; }
 }
 @media (min-width: 901px) and (max-height: 620px) {
   .scene { min-height: 140px; }
+}
+@media (min-width: 581px) {
+  .panel { grid-template-areas: "head head" "buttons buttons" "export export" "scores scores" "primary secondary" "actuators batch" "feedback feedback" "sensors sensors" "diagram diagram" "platform platform"; }
+  .control-stack, .scenario-stack { display: grid; gap: 12px; min-width: 0; align-self: start; }
+  .control-stack { grid-area: primary; }
+  .scenario-stack { grid-area: secondary; }
+  .control-stack > .box, .scenario-stack > .box { grid-area: auto; }
 }

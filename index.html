@@ -57,6 +57,7 @@
     </div>
     <div class="export-status"><p>CSV contains main-flight telemetry. Restart clears the recording.</p><p id="export-status" role="status"></p></div>
 
+    <div class="control-stack">
     <section class="box pid-box">
       <h2>Pitch and roll PID</h2>
       <div class="slider-row"><label for="kp">Kp, proportional</label><output id="kp-output" for="kp">4.0</output><input id="kp" type="range" min="0" max="10" step="0.1" value="4"><small>Corrects attitude error on each axis.</small></div>
@@ -66,8 +67,26 @@
       <canvas id="tune-chart" height="90" hidden role="img" aria-label="Scores of auto-tune candidates and best successful trial"></canvas>
       <p id="gain-note" class="small">Both axes use these gains. Changes apply live. Restart to compare flights.</p>
     </section>
+    <section class="box close-box">
+      <h2>Vehicle and diagnostics</h2>
+      <canvas id="closeup" height="190" role="img" aria-label="3D vehicle attitude, geometry, thrust-vector gimbal and velocity direction"></canvas>
+      <div class="legend"><span><i class="reference"></i>Target axis</span><span><i></i>Velocity</span></div>
+      <div class="close-meta"><span id="gimbal">Gimbal: 0.0° / 0.0°</span><span id="throttle">Throttle: 0%</span><span id="twr">T/W: 0.00</span></div>
+      <dl class="diagnostics" aria-label="Actual rigid-body flight diagnostics, independent of selected controller feedback">
+        <div><dt>Current T/W</dt><dd id="current-twr">0.00</dd></div>
+        <div><dt>Lateral target error</dt><dd id="lateral-error">60.0 m</dd></div>
+        <div><dt>Stopping distance</dt><dd id="braking-distance">—</dd></div>
+        <div><dt>Distance to target plane</dt><dd id="braking-remaining">—</dd></div>
+        <div><dt>Braking margin</dt><dd id="braking-margin">—</dd></div>
+        <div><dt>Gimbal authority</dt><dd id="gimbal-saturation">Available</dd></div>
+      </dl>
+      <p id="diagnostic-warning" class="small" role="status"></p>
+      <details class="technical-details"><summary>Read diagnostic limits</summary><p class="small">Scene values, diagnostics, scores and landing or capture decisions use actual simulated state, not controller estimates. Stopping distance uses descent speed, available vertical thrust and actuator response. It is an estimate, not a landing guarantee.</p></details>
+    </section>
+    </div>
 
 
+    <div class="scenario-stack">
     <section class="box scenario-box">
       <h2>Scenario</h2>
       <div class="mode-row"><label for="mode">Flight mode</label><select id="mode"><option value="landing">Rocket landing</option><option value="catch">Tower catch</option><option value="stabilize">Straight-up stabilization</option><option value="monocopter">Tilt-prop monocopter</option></select></div>
@@ -88,22 +107,6 @@
       <details class="technical-details"><summary>Read scenario behavior</summary><p class="small">Scenario, feedback and GNSS changes restart the trial and clear best scores, tuning traces and batch results. Auto-tune and batch trials use the selected feedback and aiding. Success is not guaranteed.</p><p class="small">Wind acts along world X and Y. Mass changes inertia and thrust-to-weight ratio. Some settings cannot sustain flight.</p></details>
     </section>
 
-    <section class="box close-box">
-      <h2>Vehicle and diagnostics</h2>
-      <canvas id="closeup" height="190" role="img" aria-label="3D vehicle attitude, geometry, thrust-vector gimbal and velocity direction"></canvas>
-      <div class="legend"><span><i class="reference"></i>Target axis</span><span><i></i>Velocity</span></div>
-      <div class="close-meta"><span id="gimbal">Gimbal: 0.0° / 0.0°</span><span id="throttle">Throttle: 0%</span><span id="twr">T/W: 0.00</span></div>
-      <dl class="diagnostics" aria-label="Actual rigid-body flight diagnostics, independent of selected controller feedback">
-        <div><dt>Current T/W</dt><dd id="current-twr">0.00</dd></div>
-        <div><dt>Lateral target error</dt><dd id="lateral-error">60.0 m</dd></div>
-        <div><dt>Stopping distance</dt><dd id="braking-distance">—</dd></div>
-        <div><dt>Distance to target plane</dt><dd id="braking-remaining">—</dd></div>
-        <div><dt>Braking margin</dt><dd id="braking-margin">—</dd></div>
-        <div><dt>Gimbal authority</dt><dd id="gimbal-saturation">Available</dd></div>
-      </dl>
-      <p id="diagnostic-warning" class="small" role="status"></p>
-      <details class="technical-details"><summary>Read diagnostic limits</summary><p class="small">Scene values, diagnostics, scores and landing or capture decisions use actual simulated state, not controller estimates. Stopping distance uses descent speed, available vertical thrust and actuator response. It is an estimate, not a landing guarantee.</p></details>
-    </section>
 
     <section class="box chart-box">
       <h2>Attitude tracking</h2>
@@ -116,6 +119,7 @@
       <canvas id="yaw-chart" height="100" role="img" aria-label="Yaw angle over simulation time; no yaw control actuator"></canvas>
       <details class="technical-details"><summary>Read yaw behavior</summary><p class="small">There is no yaw actuator or hidden yaw stabilization. Monocopter propeller reaction torque can spin the body. Rotational drag opposes that rotation.</p></details>
     </section>
+    </div>
 
     <details class="box actuator-box">
       <summary>Adjust actuator limits and response</summary>
